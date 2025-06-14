@@ -1,3 +1,24 @@
+# 音乐播放器（带播放列表与元数据）​​
+## 背景：
+开发一个音乐播放器，支持创建多个播放列表并显示歌曲元数据。
+#### 核心功能：
+*   创建、删除、重命名播放列表。
+*   添加/删除歌曲到播放列表。
+*   显示歌曲元数据（歌手、专辑、时长）。
+*   播放模式：顺序、循环、随机。
+#### 技术要点：
+   * 使用ArrayList管理歌曲和播放列表。
+   * 通过File类读取本地MP3文件的元数据（ID3标签，可使用第三方库如jaudiotagger）。
+   * 继承设计：PlayMode基类（顺序、循环、随机模式）。
+   * 文件IO操作（读取MP3文件信息）。
+#### 扩展方向：
+   * 支持在线音乐流媒体（模拟API调用）。
+   * 添加歌词显示功能。
+
+
+
+# Original README here:
+
 # MusicPlayer
 
 MusicPlayer is an open source music player for Mac and Windows.
