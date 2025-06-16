@@ -25,31 +25,44 @@ import javafx.util.Duration;
 
 public class ControlPanelController implements Initializable {
 
+	// 播放按钮
 	@FXML private Pane playButton;
+	// 播放列表按钮
 	@FXML private Pane playlistButton;
 
+	// 上下文菜单
 	private ContextMenu contextMenu;
 
+	// 显示菜单动画
 	private Animation showMenuAnimation = new Transition() {
 		{
+			// 设置动画持续时间为250毫秒
 			setCycleDuration(Duration.millis(250));
+			// 设置动画插值为EaseBoth
 			setInterpolator(Interpolator.EASE_BOTH);
 		}
 		protected void interpolate(double frac) {
+			// 设置上下文菜单的透明度为动画进度
 			contextMenu.setOpacity(frac);
 		}
 	};
 
+	// 初始化方法
 	@Override
 	public void initialize(URL location, ResourceBundle resources) {}
 
+	// 播放歌曲方法
 	@FXML
 	private void playSong(Event e) {
+		// 获取主控制器的子视图控制器
 		SubView controller = MusicPlayer.getMainController().getSubViewController();
+		// 播放歌曲
 		controller.play();
+		// 消费事件
 		e.consume();
 	}
 
+	// 添加到播放列表方法
 	@FXML
 	private void addToPlaylist(Event e) {
 		// Gets the mouse event coordinates in the screen to display the context menu in this location.

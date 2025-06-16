@@ -58,29 +58,29 @@ public class MusicPlayer extends Application {
 
     private static Stage stage;
 
-    // Stores the number of files in library.xml.
-    // This will then be compared to the number of files in the music directory when starting up the application to
-    // determine if the xml file needs to be updated by adding or deleting songs.
+    // 存储library.xml中的文件数量。
+    // 然后在启动应用程序时将其与音乐目录中的文件数量进行比较，
+    // 以确定是否需要通过添加或删除歌曲来更新xml文件。
     private static int xmlFileNum;
 
-    // Stores the last id that was assigned to a song.
-    // This is important when adding new songs after others have been deleted because the last id assigned
-    // may not necessarily be equal to the number of songs in the xml file if songs have been deleted.
+    // 存储分配给歌曲的最后一个id。
+    // 这在删除其他歌曲后添加新歌曲时很重要，
+    // 因为最后一个分配的id不一定等于xml文件中的歌曲数量，
+    // 因为可能已经删除了歌曲。
     private static int lastIdAssigned;
 
     public static void main(String[] args) {
-        System.out.println("程序启动！");
         Application.launch(MusicPlayer.class);
     }
 
     @Override
     public void start(Stage stage) throws Exception {
 
-        // Suppresses warning caused by converting music library data into xml file.
+        // 抑制将音乐库数据转换为xml文件时产生的警告。
         LogManager.getLogManager().reset();
         PrintStream dummyStream = new PrintStream(new OutputStream() {
             public void write(int b) {
-                //do nothing
+                // 无操作
             }
         });
         System.setOut(dummyStream);
@@ -99,17 +99,17 @@ public class MusicPlayer extends Application {
         });
 
         try {
-            // Load main layout from fxml file.
+            // 从fxml文件加载主布局。
             FXMLLoader loader = new FXMLLoader(this.getClass().getResource(Resources.FXML + "SplashScreen.fxml"));
             VBox view = loader.load();
 
-            // Shows the scene containing the layout.
+            // 显示包含布局的场景。
             Scene scene = new Scene(view);
             stage.setScene(scene);
             stage.setMaximized(true);
             stage.show();
 
-            // Calls the function to check in the library.xml file exists. If it does not, the file is created.
+            // 调用函数检查library.xml文件是否存在。如果不存在，则创建文件。
             checkLibraryXML();
         } catch (Exception ex) {
             ex.printStackTrace();
@@ -117,7 +117,7 @@ public class MusicPlayer extends Application {
         }
 
         Thread thread = new Thread(() -> {
-            // Retrieves song, album, artist, and playlist data from library.
+            // 从库中检索歌曲、专辑、艺术家和播放列表数据。
             Library.getSongs();
             Library.getAlbums();
             Library.getArtists();
@@ -156,9 +156,16 @@ public class MusicPlayer extends Application {
             mediaPlayer.setVolume(0.5);
             mediaPlayer.setOnEndOfMedia(new SongSkipper());
 
-            File imgFolder = new File(Resources.JAR + "/img");
-            if (!imgFolder.exists()) {
+//            File imgFolder = new File(Resources.JAR + "/img");
+//            if (!imgFolder.exists()) {
 
+            // 改为使用类加载器检查资源是否存在
+            boolean resourcesMissing =
+                    MusicPlayer.class.getResource(Resources.IMG + "Icon.png") == null ||
+                            MusicPlayer.class.getResource(Resources.FXML + "SplashScreen.fxml") == null;
+
+            if (resourcesMissing) {
+                // 下载资源的线程...
                 Thread thread1 = new Thread(() -> {
                     Library.getArtists().forEach(Artist::downloadArtistImage);
                 });
@@ -181,7 +188,7 @@ public class MusicPlayer extends Application {
                 });
             }).start();
 
-            // Calls the function to initialize the main layout.
+            // 调用函数初始化主布局。
             Platform.runLater(this::initMain);
         });
 
@@ -189,7 +196,7 @@ public class MusicPlayer extends Application {
     }
 
     private static void checkLibraryXML() {
-        // Finds the jar file and the path of its parent folder.
+        // 查找jar文件及其父文件夹的路径。
         File musicPlayerJAR = null;
         try {
             musicPlayerJAR = new File(MusicPlayer.class.getProtectionDomain().getCodeSource().getLocation().toURI().getPath());
@@ -198,56 +205,56 @@ public class MusicPlayer extends Application {
         }
         String jarFilePath = musicPlayerJAR.getParentFile().getPath();
 
-        // Assigns the filepath to the XML filepath set in Resources.java
+        // 将文件路径赋值给Resources.java中设置的XML文件路径。
         Resources.JAR = jarFilePath + "/";
 
-        // Specifies library.xml file and its location.
+        // 指定library.xml文件及其位置。
         File libraryXML = new File(Resources.JAR + "library.xml");
 
-        // If the file exists, check if the music directory has changed.
+        // 如果文件存在，检查音乐目录是否已更改。
         Path musicDirectory;
         if (libraryXML.exists()) {
-            // Gets music directory path from xml file so that the number of files in the
-            // music directory can be counted and compared to the data in the xml file.
-            // It is then passed as an argument when creating the directory watch.
+            // 从xml文件中获取音乐目录路径，以便计算音乐目录中的文件数量并与xml文件中的数据进行比较。
+            // 然后将其作为创建目录监视器时的参数传递。
             musicDirectory = xmlMusicDirPathFinder();
 
-            // Try/catch block to deal with case where music directory has been renamed.
+            // 处理音乐目录被重命名的情况。
             try {
-                // Gets the number of files in the music directory and the number of files saved in the xml file.
-                // These values will be compared to determine if the xml file needs to be updated.
+                // 获取音乐目录中的文件数量和xml文件中保存的文件数量。
+                // 这些值将用于确定是否需要更新xml文件。
                 int musicDirFileNum = musicDirFileNumFinder(musicDirectory.toFile(), 0);
                 xmlFileNum = xmlMusicDirFileNumFinder();
 
-                // If the number of files stored in the xml file is not the same as the number of files in the music directory.
-                // Music library has changed; update the xml file.
+                // 如果xml文件中存储的文件数量与音乐目录中的文件数量不同。
+                // 音乐库已更改；更新xml文件。
                 if (musicDirFileNum != xmlFileNum) {
-                    // Updates the xml file from the saved music directory.
+                    // 从保存的音乐目录更新xml文件。
                     updateLibraryXML(musicDirectory);
                 }
-                // NullPointerException thrown by musicDirFileNumFinder().
-                // It occurs if the music directory has been renamed
+                // NullPointerException由musicDirFileNumFinder()抛出。
+                // 如果音乐目录被重命名，则会出现这种情况。
             } catch (NullPointerException npe) {
                 createLibraryXML();
-                // Gets the number of files saved in the xml file.
+                // 获取xml文件中保存的文件数量。
                 xmlFileNum = xmlMusicDirFileNumFinder();
-                // Gets music directory path from xml file so that it can be passed as an argument when creating the directory watch.
+                // 从xml文件中获取音乐目录路径，以便在创建目录监视器时作为参数传递。
                 musicDirectory = xmlMusicDirPathFinder();
             }
 
-            // If the library.xml file does not exist, the file is created from the user specified music library location.
+            // 如果library.xml文件不存在，则从用户指定的音乐库位置创建文件。
         } else if (!libraryXML.exists()) {
             createLibraryXML();
-            // Gets the number of files saved in the xml file.
+            // 获取xml文件中保存的文件数量。
             xmlFileNum = xmlMusicDirFileNumFinder();
-            // Gets music directory path from xml file so that it can be passed as an argument when creating the directory watch.
+            // 从xml文件中获取音乐目录路径，以便在创建目录监视器时作为参数传递。
             musicDirectory = xmlMusicDirPathFinder();
         }
     }
 
+
     private static Path xmlMusicDirPathFinder() {
         try {
-            // Creates reader for xml file.
+            // 创建xml文件的读取器。
             XMLInputFactory factory = XMLInputFactory.newInstance();
             factory.setProperty("javax.xml.stream.isCoalescing", true);
             FileInputStream is = new FileInputStream(new File(Resources.JAR + "library.xml"));
@@ -256,7 +263,7 @@ public class MusicPlayer extends Application {
             String element = null;
             String path = null;
 
-            // Loops through xml file looking for the music directory file path.
+            // 循环遍历xml文件，查找音乐目录文件路径。
             while(reader.hasNext()) {
                 reader.next();
                 if (reader.isWhiteSpace()) {
@@ -268,7 +275,7 @@ public class MusicPlayer extends Application {
                     break;
                 }
             }
-            // Closes xml reader.
+            // 关闭xml读取器。
             reader.close();
 
             return Paths.get(path);
@@ -280,7 +287,7 @@ public class MusicPlayer extends Application {
 
     private static int xmlMusicDirFileNumFinder() {
         try {
-            // Creates reader for xml file.
+            // 创建xml文件的读取器。
             XMLInputFactory factory = XMLInputFactory.newInstance();
             factory.setProperty("javax.xml.stream.isCoalescing", true);
             FileInputStream is = new FileInputStream(new File(Resources.JAR + "library.xml"));
@@ -289,7 +296,7 @@ public class MusicPlayer extends Application {
             String element = null;
             String fileNum = null;
 
-            // Loops through xml file looking for the music directory file path.
+            // 循环遍历xml文件，查找音乐目录文件路径。
             while(reader.hasNext()) {
                 reader.next();
                 if (reader.isWhiteSpace()) {
@@ -301,10 +308,10 @@ public class MusicPlayer extends Application {
                     break;
                 }
             }
-            // Closes xml reader.
+            // 关闭xml读取器。
             reader.close();
 
-            // Converts the file number to an int and returns the value.
+            // 将文件数量转换为int并返回该值。
             return Integer.parseInt(fileNum);
         } catch (Exception e) {
             e.printStackTrace();
@@ -313,10 +320,10 @@ public class MusicPlayer extends Application {
     }
 
     private static int musicDirFileNumFinder(File musicDirectory, int i) {
-        // Lists all the files in the music directory and stores them in an array.
+        // 列出音乐目录中的所有文件，并将它们存储在数组中。
         File[] files = musicDirectory.listFiles();
 
-        // Loops through the files, increments counter if file is found.
+        // 遍历文件，如果找到文件则递增计数器。
         for (File file : files) {
             if (file.isFile() && Library.isSupportedFileType(file.getName())) {
                 i++;
@@ -328,11 +335,11 @@ public class MusicPlayer extends Application {
     }
 
     private static void updateLibraryXML(Path musicDirectory) {
-        // Sets the music directory for the XMLEditor.
+        // 为XMLEditor设置音乐目录。
         XMLEditor.setMusicDirectory(musicDirectory);
 
-        // Checks if songs have to be added, deleted, or both to the xml file and
-        // performs the corresponding operation.
+        // 检查是否需要向xml文件添加、删除或同时添加、删除歌曲，
+        // 并执行相应的操作。
         XMLEditor.addDeleteChecker();
     }
 
@@ -341,28 +348,28 @@ public class MusicPlayer extends Application {
             FXMLLoader loader = new FXMLLoader(MusicPlayer.class.getResource(Resources.FXML + "ImportMusicDialog.fxml"));
             BorderPane importView = loader.load();
 
-            // Create the dialog Stage.
+            // 创建对话框Stage。
             Stage dialogStage = new Stage();
-            dialogStage.setTitle("Music Player Configuration");
-            // Forces user to focus on dialog.
+            dialogStage.setTitle("音乐播放器配置");
+            // 强制用户将焦点集中在对话框上。
             dialogStage.initModality(Modality.WINDOW_MODAL);
-            // Sets minimal decorations for dialog.
+            // 设置对话框的最小装饰。
             dialogStage.initStyle(StageStyle.UTILITY);
-            // Prevents the alert from being re-sizable.
+            // 防止对话框被重新调整大小。
             dialogStage.setResizable(false);
             dialogStage.initOwner(stage);
 
-            // Sets the import music dialog scene in the stage.
+            // 在Stage中设置导入音乐对话框场景。
             dialogStage.setScene(new Scene(importView));
 
-            // Set the dialog into the controller.
+            // 将对话框设置到控制器中。
             ImportMusicDialogController controller = loader.getController();
             controller.setDialogStage(dialogStage);
 
-            // Show the dialog and wait until the user closes it.
+            // 显示对话框并等待用户关闭它。
             dialogStage.showAndWait();
 
-            // Checks if the music was imported successfully. Closes the application otherwise.
+            // 检查音乐是否成功导入。否则关闭应用程序。
             boolean musicImported = controller.isMusicImported();
             if (!musicImported) {
                 System.exit(0);
@@ -372,16 +379,17 @@ public class MusicPlayer extends Application {
         }
     }
 
+
     /**
-     * Initializes the main layout.
+     * 初始化主布局。
      */
     private void initMain() {
         try {
-            // Load main layout from fxml file.
+            // 从fxml文件加载主布局。
             FXMLLoader loader = new FXMLLoader(this.getClass().getResource(Resources.FXML + "Main.fxml"));
             BorderPane view = loader.load();
 
-            // Shows the scene containing the layout.
+            // 显示包含布局的场景。
             double width = stage.getScene().getWidth();
             double height = stage.getScene().getHeight();
 
@@ -391,7 +399,7 @@ public class MusicPlayer extends Application {
             Scene scene = new Scene(view);
             stage.setScene(scene);
 
-            // Gives the controller access to the music player main application.
+            // 给控制器提供对音乐播放器主应用程序的访问。
             mainController = loader.getController();
             mediaPlayer.volumeProperty().bind(mainController.getVolumeSlider().valueProperty().divide(200));
 
@@ -400,24 +408,33 @@ public class MusicPlayer extends Application {
         }
     }
 
+    // 定义一个内部类SongSkipper，实现Runnable接口
     private static class SongSkipper implements Runnable {
+        // 实现Runnable接口的run方法
         @Override
         public void run() {
             skip();
         }
     }
 
+    // 定义一个TimeUpdater类，继承自TimerTask
     private static class TimeUpdater extends TimerTask {
+        // 定义一个length变量，表示当前播放的音频长度，单位为秒
         private int length = (int) getNowPlaying().getLengthInSeconds() * 4;
 
+        // 重写run方法，定时更新时间标签和时间滑块
         @Override
         public void run() {
+            // 在JavaFX的线程中执行
             Platform.runLater(() -> {
+                // 如果timerCounter小于length，表示播放未结束
                 if (timerCounter < length) {
+                    // 如果timerCounter能被4整除，表示每4秒更新一次时间标签
                     if (++timerCounter % 4 == 0) {
                         mainController.updateTimeLabels();
                         secondsPlayed++;
                     }
+                    // 如果时间滑块未被按下，则更新时间滑块
                     if (!mainController.isTimeSliderPressed()) {
                         mainController.updateTimeSlider();
                     }
@@ -427,7 +444,7 @@ public class MusicPlayer extends Application {
     }
 
     /**
-     * Plays selected song.
+     * 播放选定的歌曲。
      */
     public static void play() {
         if (mediaPlayer != null && !isPlaying()) {
@@ -438,14 +455,14 @@ public class MusicPlayer extends Application {
     }
 
     /**
-     * Checks if a song is playing.
+     * 检查是否有歌曲正在播放。
      */
     public static boolean isPlaying() {
         return mediaPlayer != null && MediaPlayer.Status.PLAYING.equals(mediaPlayer.getStatus());
     }
 
     /**
-     * Pauses selected song.
+     * 暂停选定的歌曲。
      */
     public static void pause() {
         if (isPlaying()) {
@@ -465,7 +482,7 @@ public class MusicPlayer extends Application {
     }
 
     /**
-     * Skips song.
+     * 跳过歌曲。
      */
     public static void skip() {
         if (nowPlayingIndex < nowPlayingList.size() - 1) {
@@ -502,7 +519,6 @@ public class MusicPlayer extends Application {
             }
         }
     }
-
     public static void mute(boolean isMuted) {
         MusicPlayer.isMuted = !isMuted;
         if (mediaPlayer != null) {
@@ -520,11 +536,14 @@ public class MusicPlayer extends Application {
 
     public static void toggleShuffle() {
 
+        // 切换随机播放状态
         isShuffleActive = !isShuffleActive;
 
+        // 如果随机播放状态为true，则打乱播放列表
         if (isShuffleActive) {
             Collections.shuffle(nowPlayingList);
         } else {
+            // 如果随机播放状态为false，则按专辑排序播放列表
             Collections.sort(nowPlayingList, (first, second) -> {
                 int result = Library.getAlbum(first.getAlbum()).compareTo(Library.getAlbum(second.getAlbum()));
                 if (result != 0) {
@@ -539,8 +558,10 @@ public class MusicPlayer extends Application {
             });
         }
 
+        // 更新当前播放索引
         nowPlayingIndex = nowPlayingList.indexOf(nowPlaying);
 
+        // 如果当前视图控制器是NowPlayingController，则重新加载视图
         if (mainController.getSubViewController() instanceof NowPlayingController) {
             mainController.loadView("nowPlaying");
         }
@@ -555,7 +576,7 @@ public class MusicPlayer extends Application {
     }
 
     /**
-     * Gets main controller object.
+     * 获取主控制器对象。
      * @return MainController
      */
     public static MainController getMainController() {
@@ -563,8 +584,8 @@ public class MusicPlayer extends Application {
     }
 
     /**
-     * Gets currently playing song list.
-     * @return arraylist of now playing songs
+     * 获取当前正在播放的歌曲列表。
+     * @return 当前正在播放的歌曲的ArrayList
      */
     public static ArrayList<Song> getNowPlayingList() {
         return nowPlayingList == null ? new ArrayList<>() : new ArrayList<>(nowPlayingList);
@@ -583,32 +604,55 @@ public class MusicPlayer extends Application {
     }
 
     public static void setNowPlaying(Song song) {
+        // 如果当前播放列表中包含该歌曲
         if (nowPlayingList.contains(song)) {
 
+            // 更新播放次数
             updatePlayCount();
+            // 获取该歌曲在当前播放列表中的索引
             nowPlayingIndex = nowPlayingList.indexOf(song);
+            // 如果当前播放的歌曲不为空
             if (nowPlaying != null) {
+                // 将当前播放的歌曲设置为不播放状态
                 nowPlaying.setPlaying(false);
             }
+            // 将当前播放的歌曲设置为该歌曲
             nowPlaying = song;
+            // 将该歌曲设置为播放状态
             nowPlaying.setPlaying(true);
+            // 如果媒体播放器不为空
             if (mediaPlayer != null) {
+                // 停止媒体播放器
                 mediaPlayer.stop();
             }
+            // 如果定时器不为空
             if (timer != null) {
+                // 取消定时器
                 timer.cancel();
             }
+            // 创建新的定时器
             timer = new Timer();
+            // 定时器计数器置为0
             timerCounter = 0;
+            // 已播放时间置为0
             secondsPlayed = 0;
+            // 获取该歌曲的路径
             String path = song.getLocation();
+            // 创建媒体对象
             Media media = new Media(Paths.get(path).toUri().toString());
+            // 创建媒体播放器
             mediaPlayer = new MediaPlayer(media);
+            // 将媒体播放器的音量与主控制器的音量滑块绑定
             mediaPlayer.volumeProperty().bind(mainController.getVolumeSlider().valueProperty().divide(200));
+            // 设置媒体播放器的结束事件
             mediaPlayer.setOnEndOfMedia(new SongSkipper());
+            // 设置媒体播放器的静音状态
             mediaPlayer.setMute(isMuted);
+            // 更新主控制器的当前播放按钮
             mainController.updateNowPlayingButton();
+            // 初始化主控制器的时间滑块
             mainController.initializeTimeSlider();
+            // 初始化主控制器的时间标签
             mainController.initializeTimeLabels();
         }
     }
