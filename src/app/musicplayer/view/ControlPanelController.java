@@ -65,17 +65,17 @@ public class ControlPanelController implements Initializable {
 	// 添加到播放列表方法
 	@FXML
 	private void addToPlaylist(Event e) {
-		// Gets the mouse event coordinates in the screen to display the context menu in this location.
+		// 获取鼠标事件在屏幕上的坐标，以便在指定位置显示上下文菜单。
 		MouseEvent mouseEvent = (MouseEvent) e;
 		double x = mouseEvent.getScreenX();
 		double y = mouseEvent.getScreenY();
 
-		// Retrieves the selected song to add to the desired playlist.
+		// 获取要添加到播放列表的歌曲。
 		Song selectedSong = MusicPlayer.getMainController().getSubViewController().getSelectedSong();
 
 		ObservableList<Playlist> playlists = Library.getPlaylists();
 
-		// Retrieves all the playlist titles to create menu items.
+		// 获取所有播放列表标题以创建菜单项。
 		ObservableList<String> playlistTitles = FXCollections.observableArrayList();
 		for (Playlist playlist : playlists) {
 			String title = playlist.getTitle();
@@ -87,7 +87,7 @@ public class ControlPanelController implements Initializable {
 
 		contextMenu = new ContextMenu();
 
-		MenuItem playing = new MenuItem("Playing");
+		MenuItem playing = new MenuItem("正在播放");
 		playing.setStyle("-fx-text-fill: black");
 		playing.setOnAction(e1 -> {
 			MusicPlayer.addSongToNowPlayingList(selectedSong);
@@ -104,16 +104,16 @@ public class ControlPanelController implements Initializable {
 			contextMenu.getItems().add(item);
 		}
 
-		// Creates a menu item for each playlist title and adds it to the context menu.
+		// 为每个播放列表标题创建菜单项并添加到上下文菜单中。
 		for (String title : playlistTitles) {
 			MenuItem item = new MenuItem(title);
 			item.setStyle("-fx-text-fill: black");
 
 			item.setOnAction(e2 -> {
-				// Finds the desired playlist and adds the currently selected song to it.
+				// 找到目标播放列表并将当前选中的歌曲添加到其中。
 				String targetPlaylistTitle = item.getText();
 
-				// Finds the correct playlist and adds the song to it.
+				// 找到正确的播放列表并将歌曲添加到其中。
 				playlists.forEach(playlist -> {
 					if (playlist.getTitle().equals(targetPlaylistTitle)) {
 						playlist.addSong(selectedSong);
