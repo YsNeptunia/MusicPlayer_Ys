@@ -51,6 +51,7 @@ public class MusicPlayer extends Application {
     private static Timer timer;
     private static int timerCounter;
     private static int secondsPlayed;
+    private static boolean isRepeatActive = false;
     private static boolean isLoopActive = false;
     private static boolean isShuffleActive = false;
     private static boolean isMuted = false;
@@ -485,14 +486,21 @@ public class MusicPlayer extends Application {
      * 跳过歌曲。
      */
     public static void skip() {
-        if (nowPlayingIndex < nowPlayingList.size() - 1) {
+        if (isRepeatActive) {   // 单曲循环情况，则只播放当前歌曲
+            boolean isPlaying = isPlaying();
+            mainController.updatePlayPauseIcon(isPlaying);
+            setNowPlaying(nowPlayingList.get(nowPlayingIndex));
+            if (isPlaying) {
+                play();
+            }
+        }else if (nowPlayingIndex < nowPlayingList.size() - 1) {    //顺序播放情况，到最后一首时进入列表循环判断，在下一个elseif中判断
             boolean isPlaying = isPlaying();
             mainController.updatePlayPauseIcon(isPlaying);
             setNowPlaying(nowPlayingList.get(nowPlayingIndex + 1));
             if (isPlaying) {
                 play();
             }
-        } else if (isLoopActive) {
+        } else if (isLoopActive) {  //列表循环情况，从第一首再来
             boolean isPlaying = isPlaying();
             mainController.updatePlayPauseIcon(isPlaying);
             nowPlayingIndex = 0;
@@ -500,7 +508,7 @@ public class MusicPlayer extends Application {
             if (isPlaying) {
                 play();
             }
-        } else {
+        } else {    //顺序播放的最后一首结束，停止播放
             mainController.updatePlayPauseIcon(false);
             nowPlayingIndex = 0;
             setNowPlaying(nowPlayingList.get(nowPlayingIndex));
@@ -524,6 +532,18 @@ public class MusicPlayer extends Application {
         if (mediaPlayer != null) {
             mediaPlayer.setMute(!isMuted);
         }
+    }
+
+    public static void toggleRepeat() {
+        isRepeatActive = !isRepeatActive;
+        // 如果启用单曲循环，则禁用普通循环
+        if (isRepeatActive) {
+            isLoopActive = false;
+        }
+    }
+
+    public static boolean isRepeatActive() {
+        return isRepeatActive;
     }
 
     public static void toggleLoop() {
@@ -569,6 +589,25 @@ public class MusicPlayer extends Application {
 
     public static boolean isShuffleActive() {
         return isShuffleActive;
+    }
+
+    public static void clearLoopAndShuffle() {  //当单曲循环按下时清除另外两个状态
+        isLoopActive = false;
+        isShuffleActive = false;
+
+        // 随机播放状态为false，则按专辑排序播放列表
+        Collections.sort(nowPlayingList, (first, second) -> {
+            int result = Library.getAlbum(first.getAlbum()).compareTo(Library.getAlbum(second.getAlbum()));
+            if (result != 0) {
+                return result;
+            }
+            result = Library.getAlbum(first.getAlbum()).compareTo(Library.getAlbum(second.getAlbum()));
+            if (result != 0) {
+                return result;
+            }
+            result = first.compareTo(second);
+            return result;
+        });
     }
 
     public static Stage getStage() {

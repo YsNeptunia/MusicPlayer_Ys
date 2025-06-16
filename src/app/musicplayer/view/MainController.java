@@ -49,6 +49,7 @@ import javafx.util.Duration;
 public class MainController implements Initializable, IntellitypeListener {
 
 	private boolean isSideBarExpanded = true;
+	private boolean isRepeatActive = false;
     private double expandedWidth = 250;
     private double collapsedWidth = 50;
     private double expandedHeight = 50;
@@ -79,6 +80,7 @@ public class MainController implements Initializable, IntellitypeListener {
     @FXML private Pane playButton;
     @FXML private Pane pauseButton;
     @FXML private Pane loopButton;
+	@FXML private Pane repeatButton;
     @FXML private Pane shuffleButton;
     @FXML private HBox controlBox;
 
@@ -86,38 +88,64 @@ public class MainController implements Initializable, IntellitypeListener {
 
     @Override
     public void initialize(URL location, ResourceBundle resources) {
-    	
+
+    	// 重置锁存器
     	resetLatch();
-    	
+
+    	// 移除控制框中的第三个元素
     	controlBox.getChildren().remove(2);
-    	
+
+    	// 绑定时间滑块轨道的宽度
     	frontSliderTrack.prefWidthProperty().bind(timeSlider.widthProperty().multiply(timeSlider.valueProperty().divide(timeSlider.maxProperty())));
-    	
+
+    	// 创建自定义滑块皮肤
     	sliderSkin = new CustomSliderSkin(timeSlider);
     	timeSlider.setSkin(sliderSkin);
-    	
+
+    	// 创建音量弹出框和搜索弹出框
     	createVolumePopup();
         createSearchPopup();
-    	
+
+    	// 获取伪类
     	PseudoClass active = PseudoClass.getPseudoClass("active");
+    	// 循环按钮点击事件
     	loopButton.setOnMouseClicked(x -> {
+			if(isRepeatActive)	return;
     		sideBar.requestFocus();
     		MusicPlayer.toggleLoop();
     		loopButton.pseudoClassStateChanged(active, MusicPlayer.isLoopActive());
     	});
+    	// 随机播放按钮点击事件
     	shuffleButton.setOnMouseClicked(x -> {
+			if(isRepeatActive)	return;
     		sideBar.requestFocus();
     		MusicPlayer.toggleShuffle();
     		shuffleButton.pseudoClassStateChanged(active, MusicPlayer.isShuffleActive());
     	});
-    	
+
+		// 单曲循环按钮点击事件
+		repeatButton.setOnMouseClicked(x -> {
+			sideBar.requestFocus();
+			isRepeatActive = !isRepeatActive;
+			MusicPlayer.clearLoopAndShuffle();
+			MusicPlayer.toggleRepeat();
+			loopButton.setDisable(isRepeatActive);
+			shuffleButton.setDisable(isRepeatActive);
+			loopButton.pseudoClassStateChanged(active, false);
+			shuffleButton.pseudoClassStateChanged(active, false);
+			repeatButton.pseudoClassStateChanged(active, MusicPlayer.isRepeatActive());
+		});
+
+    	// 设置时间滑块不可聚焦
     	timeSlider.setFocusTraversable(false);
-    	
+
+        // 时间滑块值改变事件
         timeSlider.valueChangingProperty().addListener(
             (slider, wasChanging, isChanging) -> {
 
                 if (wasChanging) {
 
+                    // 计算秒数
                     int seconds = (int) Math.round(timeSlider.getValue() / 4.0);
                     timeSlider.setValue(seconds * 4);
                     MusicPlayer.seek(seconds);
@@ -125,6 +153,7 @@ public class MainController implements Initializable, IntellitypeListener {
             }
         );
 
+        // 时间滑块值改变事件
         timeSlider.valueProperty().addListener(
             (slider, oldValue, newValue) -> {
 
@@ -132,36 +161,45 @@ public class MainController implements Initializable, IntellitypeListener {
                 double current = newValue.doubleValue();
                 if (!timeSlider.isValueChanging() && current != previous + 1 && !isTimeSliderPressed()) {
 
+                    // 计算秒数
                     int seconds = (int) Math.round(current / 4.0);
                     timeSlider.setValue(seconds * 4);
                     MusicPlayer.seek(seconds);
                 }
             }
         );
-        
+
+        // 加载字母动画完成事件
         unloadLettersAnimation.setOnFinished(x -> {
         	letterBox.setPrefHeight(0);
         	letterSeparator.setPrefHeight(0);
 		});
 
+		// 搜索框文本改变事件
 		searchBox.textProperty().addListener((observable, oldText, newText) -> {
 			String text = newText.trim();
 			if (text.equals("")) {
+                // 如果搜索弹出框正在显示且搜索隐藏动画未运行，则播放搜索隐藏动画
                 if (searchPopup.isShowing() && !searchHideAnimation.getStatus().equals(Status.RUNNING)) {
                     searchHideAnimation.play();
                 }
             } else {
+                // 搜索文本
                 Search.search(text);
 			}
 		});
 
+		// 搜索结果改变事件
 		Search.hasResultsProperty().addListener((observable, hadResults, hasResults) -> {
 			if (hasResults) {
+                // 获取搜索结果
                 SearchResult result = Search.getResult();
+                // 在主线程中显示搜索结果
                 Platform.runLater(() -> {
                     showSearchResults(result);
                     MusicPlayer.getStage().toFront();
                 });
+                // 计算搜索结果的高度
                 int height = 0;
                 int artists = result.getArtistResults().size();
                 int albums = result.getAlbumResults().size();
@@ -170,37 +208,47 @@ public class MainController implements Initializable, IntellitypeListener {
                 if (albums > 0) height += (albums * 50) + 50;
                 if (songs > 0) height += (songs * 50) + 50;
                 if (height == 0) height = 50;
+                // 设置搜索弹出框的高度
                 searchPopup.setHeight(height);
             }
 		});
 
+		// 音乐播放器窗口x坐标改变事件
 		MusicPlayer.getStage().xProperty().addListener((observable, oldValue, newValue) -> {
+            // 如果搜索弹出框正在显示且搜索隐藏动画未运行，则播放搜索隐藏动画
             if (searchPopup.isShowing() && !searchHideAnimation.getStatus().equals(Status.RUNNING)) {
                 searchHideAnimation.play();
             }
         });
 
+        // 音乐播放器窗口y坐标改变事件
         MusicPlayer.getStage().yProperty().addListener((observable, oldValue, newValue) -> {
+            // 如果搜索弹出框正在显示且搜索隐藏动画未运行，则播放搜索隐藏动画
             if (searchPopup.isShowing() && !searchHideAnimation.getStatus().equals(Status.RUNNING)) {
                 searchHideAnimation.play();
             }
         });
 
+		// 设置字母框中每个标签的宽度
 		for (Node node : letterBox.getChildren()) {
         	Label label = (Label)node;
         	label.prefWidthProperty().bind(letterBox.widthProperty().subtract(50).divide(26).subtract(1));
         }
-        
+
+        // 更新正在播放按钮
         updateNowPlayingButton();
+        // 初始化时间滑块
         initializeTimeSlider();
+        // 初始化时间标签
         initializeTimeLabels();
+        // 初始化播放列表
         initializePlaylists();
-        
+
         // Register media keys on Windows
         if (System.getProperty("os.name").toUpperCase().contains("WINDOWS")) {
         	JIntellitype.getInstance().addIntellitypeListener(this);
         }
-        
+
         // Loads the default view: artists.
         loadView("artists");
     }
@@ -233,7 +281,7 @@ public class MainController implements Initializable, IntellitypeListener {
     
     private void createVolumePopup() {
     	try {
-    		
+
     		Stage stage = MusicPlayer.getStage();
         	FXMLLoader loader = new FXMLLoader(this.getClass().getResource(Resources.FXML + "VolumePopup.fxml"));
         	HBox view = loader.load();
@@ -250,13 +298,13 @@ public class MainController implements Initializable, IntellitypeListener {
         		}
         	});
         	volumeHideAnimation.setOnFinished(x -> popup.hide());
-        	
+
         	popup.show();
         	popup.hide();
         	volumePopup = popup;
-        	
+
     	} catch (Exception ex) {
-    		
+
     		ex.printStackTrace();
     	}
     }
@@ -345,12 +393,12 @@ public class MainController implements Initializable, IntellitypeListener {
 				HBox cell = loader.load();
 				Label label = (Label) cell.getChildren().get(1);
 				label.setText(playlist.getTitle());
-				
+
 				cell.setOnMouseClicked(x -> {
 					selectView(x);
 					((PlaylistsController) subViewController).selectPlaylist(playlist);
 				});
-				
+
 				cell.setOnDragDetected(event -> {
 					PseudoClass pressed = PseudoClass.getPseudoClass("pressed");
 					cell.pseudoClassStateChanged(pressed, false);
@@ -362,42 +410,42 @@ public class MainController implements Initializable, IntellitypeListener {
     	        	db.setDragView(cell.snapshot(null, null), 125, 25);
     	            event.consume();
     	        });
-				
+
 				PseudoClass hover = PseudoClass.getPseudoClass("hover");
-				
+
 				cell.setOnDragEntered(event -> {
 					if (!(playlist instanceof MostPlayedPlaylist)
 							&& !(playlist instanceof RecentlyPlayedPlaylist)
 							&& event.getGestureSource() != cell
 							&& event.getDragboard().hasString()) {
-						
+
 						cell.pseudoClassStateChanged(hover, true);
 						//cell.getStyleClass().setAll("sideBarItemSelected");
 					}
 				});
-				
+
 				cell.setOnDragExited(event -> {
 					if (!(playlist instanceof MostPlayedPlaylist)
 							&& !(playlist instanceof RecentlyPlayedPlaylist)
 							&& event.getGestureSource() != cell
 							&& event.getDragboard().hasString()) {
-						
+
 						cell.pseudoClassStateChanged(hover, false);
 						//cell.getStyleClass().setAll("sideBarItem");
 					}
 				});
-				
+
 				cell.setOnDragOver(event -> {
 					if (!(playlist instanceof MostPlayedPlaylist)
 							&& !(playlist instanceof RecentlyPlayedPlaylist)
 							&& event.getGestureSource() != cell
 							&& event.getDragboard().hasString()) {
-						
+
 						event.acceptTransferModes(TransferMode.ANY);
 					}
 					event.consume();
 				});
-				
+
 				cell.setOnDragDropped(event -> {
 					String dragString = event.getDragboard().getString();
 					new Thread(() -> {
@@ -444,14 +492,14 @@ public class MainController implements Initializable, IntellitypeListener {
 			            	break;
 			            }
 					}).start();
-					
+
 					event.consume();
 				});
-				
+
 				playlistBox.getChildren().add(cell);
-				
+
 			} catch (Exception e) {
-				
+
 				e.printStackTrace();
 			}
     	}
@@ -492,23 +540,23 @@ public class MainController implements Initializable, IntellitypeListener {
     @SuppressWarnings("unchecked")
 	@FXML
     private void newPlaylist() {
-    	
+
     	if (!newPlaylistAnimation.getStatus().equals(Status.RUNNING)) {
-    		
+
     		try {
-        		
+
     			FXMLLoader loader = new FXMLLoader(this.getClass().getResource(Resources.FXML + "PlaylistCell.fxml"));
     			HBox cell = loader.load();
-    			
+
     			Label label = (Label) cell.getChildren().get(1);
     			label.setVisible(false);
     			HBox.setMargin(label, new Insets(0, 0, 0, 0));
-    			
+
     			TextField textBox = new TextField();
     			textBox.setPrefHeight(30);
     			cell.getChildren().add(textBox);
     			HBox.setMargin(textBox, new Insets(10, 10, 10, 9));
-    			
+
     			textBox.focusedProperty().addListener((obs, oldValue, newValue) -> {
     				if (oldValue && !newValue) {
     					String text = textBox.getText().equals("") ? "New Playlist" : textBox.getText();
@@ -520,19 +568,19 @@ public class MainController implements Initializable, IntellitypeListener {
         				Library.addPlaylist(text);
     				}
     			});
-    			
+
     			textBox.setOnKeyPressed(x -> {
     				if (x.getCode() == KeyCode.ENTER)  {
     		            sideBar.requestFocus();
     		        }
     			});
-    			
+
     			cell.setOnMouseClicked(x -> {
     				selectView(x);
     				Playlist playlist = Library.getPlaylist(label.getText());
     				((PlaylistsController) subViewController).selectPlaylist(playlist);
     			});
-    			
+
     			cell.setOnDragDetected(event -> {
     				PseudoClass pressed = PseudoClass.getPseudoClass("pressed");
 					cell.pseudoClassStateChanged(pressed, false);
@@ -547,43 +595,43 @@ public class MainController implements Initializable, IntellitypeListener {
     	        	db.setDragView(cell.snapshot(sp, null));
     	            event.consume();
     	        });
-    			
+
     			PseudoClass hover = PseudoClass.getPseudoClass("hover");
-				
+
     			cell.setOnDragEntered(event -> {
     				Playlist playlist = Library.getPlaylist(label.getText());
 					if (!(playlist instanceof MostPlayedPlaylist)
 							&& !(playlist instanceof RecentlyPlayedPlaylist)
 							&& event.getGestureSource() != cell
 							&& event.getDragboard().hasString()) {
-						
+
 						cell.pseudoClassStateChanged(hover, true);
 					}
 				});
-				
+
 				cell.setOnDragExited(event -> {
 					Playlist playlist = Library.getPlaylist(label.getText());
 					if (!(playlist instanceof MostPlayedPlaylist)
 							&& !(playlist instanceof RecentlyPlayedPlaylist)
 							&& event.getGestureSource() != cell
 							&& event.getDragboard().hasString()) {
-						
+
 						cell.pseudoClassStateChanged(hover, false);
 					}
 				});
-				
+
 				cell.setOnDragOver(event -> {
 					Playlist playlist = Library.getPlaylist(label.getText());
 					if (!(playlist instanceof MostPlayedPlaylist)
 							&& !(playlist instanceof RecentlyPlayedPlaylist)
 							&& event.getGestureSource() != cell
 							&& event.getDragboard().hasString()) {
-						
+
 						event.acceptTransferModes(TransferMode.ANY);
 					}
 					event.consume();
 				});
-				
+
 				cell.setOnDragDropped(event -> {
 					Playlist playlist = Library.getPlaylist(label.getText());
 					String dragString = event.getDragboard().getString();
@@ -631,22 +679,22 @@ public class MainController implements Initializable, IntellitypeListener {
 			            	break;
 			            }
 					}).start();
-					
+
 					event.consume();
 				});
-    			
+
     			cell.setPrefHeight(0);
     			cell.setOpacity(0);
-    			
+
     			playlistBox.getChildren().add(1, cell);
-    			
+
     			textBox.requestFocus();
-    			
+
     		} catch (Exception e) {
-    			
+
     			e.printStackTrace();
     		}
-        	
+
         	newPlaylistAnimation.play();
     	}
     }
@@ -654,7 +702,7 @@ public class MainController implements Initializable, IntellitypeListener {
     private String checkDuplicatePlaylist(String text, int i) {
     	for (Playlist playlist : Library.getPlaylists()) {
     		if (playlist.getTitle().equals(text)) {
-    			
+
     			int index = text.lastIndexOf(' ') + 1;
     			if (index != 0) {
     				try {
@@ -663,9 +711,9 @@ public class MainController implements Initializable, IntellitypeListener {
     					// do nothing
     				}
     			}
-    			
+
     			i++;
-    			
+
     			if (i == 1) {
     				text = checkDuplicatePlaylist(text + " " + i, i);
     			} else {
@@ -674,16 +722,16 @@ public class MainController implements Initializable, IntellitypeListener {
     			break;
     		}
     	}
-    	
+
     	return text;
     }
     
     public SubView loadView(String viewName) {
         try {
-        	
+
         	boolean loadLetters;
         	boolean unloadLetters;
-        	
+
         	switch (viewName.toLowerCase()) {
         	case "artists":
         	case "artistsmain":
@@ -713,10 +761,10 @@ public class MainController implements Initializable, IntellitypeListener {
         		}
         		break;
         	}
-	        
+
 	        final boolean loadLettersFinal = loadLetters;
 	        final boolean unloadLettersFinal = unloadLetters;
-        	
+
             String fileName = viewName.substring(0, 1).toUpperCase() + viewName.substring(1) + ".fxml";
             
             FXMLLoader loader = new FXMLLoader(this.getClass().getResource(fileName));
@@ -736,7 +784,7 @@ public class MainController implements Initializable, IntellitypeListener {
 		        	return null;
 	        	}
 	        };
-	        
+
 	        task.setOnSucceeded(x -> new Thread(() -> {
                 try {
                     latch.await();
@@ -751,7 +799,7 @@ public class MainController implements Initializable, IntellitypeListener {
                     loadViewAnimation.play();
                 });
             }).start());
-	        
+
 	        Thread thread = new Thread(task);
             
             unloadViewAnimation.setOnFinished(x -> thread.start());
@@ -782,7 +830,7 @@ public class MainController implements Initializable, IntellitypeListener {
     
     @FXML
     private void navigateToCurrentSong() {
-    	
+
     	Optional<Node> previous = sideBar.getChildren().stream()
                 .filter(x -> x.getStyleClass().get(0).equals("sideBarItemSelected")).findFirst();
 
@@ -840,7 +888,7 @@ public class MainController implements Initializable, IntellitypeListener {
     public void playPause() {
 
     	sideBar.requestFocus();
-    	
+
         if (MusicPlayer.isPlaying()) {
             MusicPlayer.pause();
         } else {
@@ -864,7 +912,7 @@ public class MainController implements Initializable, IntellitypeListener {
     
     @FXML
     private void letterClicked(Event e) {
-    	
+
     	sideBar.requestFocus();
     	Label eventSource = ((Label)e.getSource());
     	char letter = eventSource.getText().charAt(0);
@@ -1007,7 +1055,7 @@ public class MainController implements Initializable, IntellitypeListener {
     }
     
     public SubView getSubViewController() {
-    	
+
     	return subViewController;
     }
     
@@ -1018,6 +1066,17 @@ public class MainController implements Initializable, IntellitypeListener {
     VBox getPlaylistBox() {
     	return playlistBox;
     }
+
+	public void updateLoopButtons() {
+		PseudoClass active = PseudoClass.getPseudoClass("active");
+		loopButton.pseudoClassStateChanged(active, MusicPlayer.isLoopActive());
+		repeatButton.pseudoClassStateChanged(active, MusicPlayer.isRepeatActive());
+
+		// 确保两种循环模式不会同时激活
+		if (MusicPlayer.isRepeatActive()) {
+			loopButton.pseudoClassStateChanged(active, false);
+		}
+	}
 
     public void updatePlayPauseIcon(boolean isPlaying) {
 
@@ -1038,7 +1097,7 @@ public class MainController implements Initializable, IntellitypeListener {
             setCycleDuration(Duration.millis(250));
             setInterpolator(Interpolator.EASE_BOTH);
         }
-    	
+
         protected void interpolate(double frac) {
         	volumePopup.setOpacity(frac);
         }
