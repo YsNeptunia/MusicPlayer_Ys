@@ -47,6 +47,8 @@ public final class Song implements Comparable<Song> {
     private SimpleBooleanProperty playing;
     private SimpleBooleanProperty selected;
 
+    private SimpleStringProperty streamingId;  // 新增流媒体ID属性
+
     /**
      * Constructor for the song class.
      *
@@ -92,6 +94,18 @@ public final class Song implements Comparable<Song> {
         this.location = location;
         this.playing = new SimpleBooleanProperty(false);
         this.selected = new SimpleBooleanProperty(false);
+
+        this.streamingId = new SimpleStringProperty();
+    }
+
+    public String getStreamingId() {
+        return streamingId.get();
+    }
+    public StringProperty streamingIdProperty() {
+        return streamingId;
+    }
+    public void setStreamingId(String streamingId) {
+        this.streamingId.set(streamingId);
     }
 
     public int getId() {
@@ -231,11 +245,14 @@ public final class Song implements Comparable<Song> {
 
     @Override
     public int compareTo(Song other) throws NullPointerException {
+        // 比较两个Song对象的discNumber属性
         int discComparison = Integer.compare(this.discNumber, other.discNumber);
 
+        // 如果discNumber不同，则返回比较结果
         if (discComparison != 0) {
             return discComparison;
         } else {
+            // 如果discNumber相同，则比较trackNumber属性
             return Integer.compare(this.trackNumber, other.trackNumber);
         }
     }

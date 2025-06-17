@@ -387,32 +387,45 @@ public class MainController implements Initializable, IntellitypeListener {
     
     @SuppressWarnings("unchecked")
 	private void initializePlaylists() {
+    	// 遍历Library中的所有歌单
     	for (Playlist playlist : Library.getPlaylists()) {
     		try {
+    			// 加载歌单单元格的FXML文件
     			FXMLLoader loader = new FXMLLoader(this.getClass().getResource(Resources.FXML + "PlaylistCell.fxml"));
 				HBox cell = loader.load();
+				// 获取单元格中的标签
 				Label label = (Label) cell.getChildren().get(1);
+				// 设置标签的文本为歌单的标题
 				label.setText(playlist.getTitle());
 
+				// 设置单元格的鼠标点击事件
 				cell.setOnMouseClicked(x -> {
 					selectView(x);
+					// 选中歌单
 					((PlaylistsController) subViewController).selectPlaylist(playlist);
 				});
 
+				// 设置单元格的拖拽事件
 				cell.setOnDragDetected(event -> {
 					PseudoClass pressed = PseudoClass.getPseudoClass("pressed");
+					// 设置单元格的伪类状态
 					cell.pseudoClassStateChanged(pressed, false);
+    	        	// 开始拖拽
     	        	Dragboard db = cell.startDragAndDrop(TransferMode.ANY);
     	        	ClipboardContent content = new ClipboardContent();
     	            content.putString("Playlist");
     	            db.setContent(content);
+    	        	// 设置拖拽的项目
     	        	MusicPlayer.setDraggedItem(playlist);
+    	        	// 设置拖拽的视图
     	        	db.setDragView(cell.snapshot(null, null), 125, 25);
     	            event.consume();
     	        });
 
+				// 设置单元格的伪类状态
 				PseudoClass hover = PseudoClass.getPseudoClass("hover");
 
+				// 设置单元格的拖拽进入事件
 				cell.setOnDragEntered(event -> {
 					if (!(playlist instanceof MostPlayedPlaylist)
 							&& !(playlist instanceof RecentlyPlayedPlaylist)
@@ -424,6 +437,7 @@ public class MainController implements Initializable, IntellitypeListener {
 					}
 				});
 
+				// 设置单元格的拖拽退出事件
 				cell.setOnDragExited(event -> {
 					if (!(playlist instanceof MostPlayedPlaylist)
 							&& !(playlist instanceof RecentlyPlayedPlaylist)
@@ -435,6 +449,7 @@ public class MainController implements Initializable, IntellitypeListener {
 					}
 				});
 
+				// 设置单元格的拖拽覆盖事件
 				cell.setOnDragOver(event -> {
 					if (!(playlist instanceof MostPlayedPlaylist)
 							&& !(playlist instanceof RecentlyPlayedPlaylist)
@@ -446,6 +461,7 @@ public class MainController implements Initializable, IntellitypeListener {
 					event.consume();
 				});
 
+				// 设置单元格的拖拽释放事件
 				cell.setOnDragDropped(event -> {
 					String dragString = event.getDragboard().getString();
 					new Thread(() -> {
@@ -496,6 +512,7 @@ public class MainController implements Initializable, IntellitypeListener {
 					event.consume();
 				});
 
+				// 将单元格添加到歌单框中
 				playlistBox.getChildren().add(cell);
 
 			} catch (Exception e) {
@@ -740,7 +757,8 @@ public class MainController implements Initializable, IntellitypeListener {
         		if (subViewController instanceof ArtistsController
         			|| subViewController instanceof ArtistsMainController
         			|| subViewController instanceof AlbumsController
-        			|| subViewController instanceof SongsController) {
+        			|| subViewController instanceof SongsController
+				    || subViewController instanceof StreamingController) {
         			loadLetters = false;
         			unloadLetters = false;
         		} else {
@@ -752,7 +770,8 @@ public class MainController implements Initializable, IntellitypeListener {
         		if (subViewController instanceof ArtistsController
         			|| subViewController instanceof ArtistsMainController
         			|| subViewController instanceof AlbumsController
-        			|| subViewController instanceof SongsController) {
+        			|| subViewController instanceof SongsController
+					|| subViewController instanceof StreamingController) {
         			loadLetters = false;
         			unloadLetters = true;
         		} else {

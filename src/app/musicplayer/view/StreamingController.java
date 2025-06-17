@@ -7,131 +7,100 @@ import java.util.ResourceBundle;
 
 import app.musicplayer.MusicPlayer;
 import app.musicplayer.model.Library;
-import app.musicplayer.model.MostPlayedPlaylist;
-import app.musicplayer.model.Playlist;
-import app.musicplayer.model.RecentlyPlayedPlaylist;
 import app.musicplayer.model.Song;
 import app.musicplayer.util.ClippedTableCell;
 import app.musicplayer.util.ControlPanelTableCell;
 import app.musicplayer.util.PlayingTableCell;
-import app.musicplayer.util.Resources;
 import app.musicplayer.util.SubView;
-import app.musicplayer.util.XMLEditor;
 import javafx.animation.Animation;
-import javafx.animation.Animation.Status;
-import javafx.animation.Interpolator;
 import javafx.animation.Transition;
 import javafx.beans.value.ChangeListener;
 import javafx.collections.ObservableList;
 import javafx.css.PseudoClass;
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
-import javafx.geometry.Insets;
-import javafx.geometry.Pos;
 import javafx.geometry.Rectangle2D;
-import javafx.scene.Node;
-import javafx.scene.control.Label;
+import javafx.scene.control.ScrollBar;
 import javafx.scene.control.SelectionMode;
 import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableRow;
 import javafx.scene.control.TableView;
 import javafx.scene.control.TableView.TableViewSelectionModel;
 import javafx.scene.control.cell.PropertyValueFactory;
-import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.input.ClipboardContent;
 import javafx.scene.input.Dragboard;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.input.TransferMode;
-import javafx.scene.layout.HBox;
-import javafx.scene.layout.Pane;
-import javafx.scene.layout.VBox;
-import javafx.scene.text.TextAlignment;
 import javafx.util.Duration;
 
-public class PlaylistsController implements Initializable, SubView {
-
+public class StreamingController implements Initializable, SubView {
     @FXML private TableView<Song> tableView;
     @FXML private TableColumn<Song, Boolean> playingColumn;
     @FXML private TableColumn<Song, String> titleColumn;
     @FXML private TableColumn<Song, String> artistColumn;
     @FXML private TableColumn<Song, String> albumColumn;
-    @FXML private TableColumn<Song, String> lengthColumn;
+    @FXML private TableColumn<Song, String> idColumn;
     @FXML private TableColumn<Song, Integer> playsColumn;
-    
-    @FXML private Label playlistTitleLabel;
-    @FXML private HBox controlBox;
-    @FXML private Pane deleteButton;
 
-    private Playlist selectedPlaylist;
+    private MusicPlayer musicPlayer;
+
+    // Initializes table view scroll bar.
+    private ScrollBar scrollBar;
+
+    // Keeps track of which column is being used to sort table view and in what order (ascending or descending)
+    private String currentSortColumn = "titleColumn";
+    private String currentSortOrder = null;
+
     private Song selectedSong;
-    
-    // Used to store the individual playlist boxes from the playlistBox. 
-    private HBox cell;
-    
-    private Animation deletePlaylistAnimation = new Transition() {
-        {
-            setCycleDuration(Duration.millis(500));
-            setInterpolator(Interpolator.EASE_BOTH);
-        }
-        protected void interpolate(double frac) {        	    		
-            if (frac < 0.5) {
-                cell.setOpacity(1.0 - frac * 2);
-            } else {
-                cell.setPrefHeight(cell.getHeight() - (frac - 0.5) * 10);
-                cell.setOpacity(0);
-            }
-        }
-    };
 
     @Override
     public void initialize(URL location, ResourceBundle resources) {
-        // 设置表格视图的选择模式为多选
+
         tableView.getSelectionModel().setSelectionMode(SelectionMode.MULTIPLE);
 
-        // 设置各列的宽度
         titleColumn.prefWidthProperty().bind(tableView.widthProperty().subtract(50).multiply(0.26));
         artistColumn.prefWidthProperty().bind(tableView.widthProperty().subtract(50).multiply(0.26));
         albumColumn.prefWidthProperty().bind(tableView.widthProperty().subtract(50).multiply(0.26));
-        lengthColumn.prefWidthProperty().bind(tableView.widthProperty().subtract(50).multiply(0.11));
+        idColumn.prefWidthProperty().bind(tableView.widthProperty().subtract(50).multiply(0.11));
         playsColumn.prefWidthProperty().bind(tableView.widthProperty().subtract(50).multiply(0.11));
 
-        // 设置各列的单元格工厂
         playingColumn.setCellFactory(x -> new PlayingTableCell<>());
         titleColumn.setCellFactory(x -> new ControlPanelTableCell<>());
         artistColumn.setCellFactory(x -> new ClippedTableCell<>());
         albumColumn.setCellFactory(x -> new ClippedTableCell<>());
-        lengthColumn.setCellFactory(x -> new ClippedTableCell<>());
+        idColumn.setCellFactory(x -> new ClippedTableCell<>());
         playsColumn.setCellFactory(x -> new ClippedTableCell<>());
 
-        // 设置各列的单元格值工厂
         playingColumn.setCellValueFactory(new PropertyValueFactory<>("playing"));
         titleColumn.setCellValueFactory(new PropertyValueFactory<>("title"));
         artistColumn.setCellValueFactory(new PropertyValueFactory<>("artist"));
         albumColumn.setCellValueFactory(new PropertyValueFactory<>("album"));
-        lengthColumn.setCellValueFactory(new PropertyValueFactory<>("length"));
-        playsColumn.setCellValueFactory(new PropertyValueFactory<>("playCount"));
-        
-        // 设置表格视图的鼠标按下事件过滤器
+
+        idColumn.setSortable(false);
+        playsColumn.setSortable(false);
+
         tableView.addEventFilter(MouseEvent.MOUSE_PRESSED, event -> {
             tableView.requestFocus();
             event.consume();
         });
 
-        // 设置表格视图的行工厂
-        tableView.setRowFactory(x -> {
+        // Retrieves the list of songs in the library, sorts them, and adds them to the table.
+        ObservableList<Song> songs = Library.getSongs();
 
+        Collections.sort(songs, (x, y) -> compareSongs(x, y));
+
+        tableView.setItems(songs);
+
+        tableView.setRowFactory(x -> {
             TableRow<Song> row = new TableRow<>();
 
-            // 定义一个伪类，用于表示歌曲是否正在播放
             PseudoClass playing = PseudoClass.getPseudoClass("playing");
 
-            // 定义一个监听器，用于监听歌曲是否正在播放的变化
             ChangeListener<Boolean> changeListener = (obs, oldValue, newValue) ->
                     row.pseudoClassStateChanged(playing, newValue);
 
-            // 监听行项的变化
             row.itemProperty().addListener((obs, previousSong, currentSong) -> {
                 if (previousSong != null) {
                     previousSong.playingProperty().removeListener(changeListener);
@@ -190,7 +159,7 @@ public class PlaylistsController implements Initializable, SubView {
                     }
                 }
             });
-            
+
             row.setOnDragDetected(event -> {
                 Dragboard db = row.startDragAndDrop(TransferMode.ANY);
                 ClipboardContent content = new ClipboardContent();
@@ -210,9 +179,9 @@ public class PlaylistsController implements Initializable, SubView {
                 event.consume();
             });
 
-            return row;
+            return row ;
         });
-        
+
         tableView.getSelectionModel().selectedItemProperty().addListener((obs, oldSelection, newSelection) -> {
             if (oldSelection != null) {
                 oldSelection.setSelected(false);
@@ -222,7 +191,7 @@ public class PlaylistsController implements Initializable, SubView {
                 selectedSong = newSelection;
             }
         });
-        
+
         // Plays selected song when enter key is pressed.
         tableView.setOnKeyPressed(event -> {
             if (event.getCode().equals(KeyCode.ENTER)) {
@@ -230,128 +199,180 @@ public class PlaylistsController implements Initializable, SubView {
             }
         });
 
-        ObservableList<Node> playlistBoxChildren = MusicPlayer.getMainController().getPlaylistBox().getChildren();
+        titleColumn.setComparator((x, y) -> {
 
-        deletePlaylistAnimation.setOnFinished(event -> {
-            playlistBoxChildren.remove(cell);
+            if (x == null && y == null) {
+                return 0;
+            } else if (x == null) {
+                return 1;
+            } else if (y == null) {
+                return -1;
+            }
+
+            Song first = Library.getSong(x);
+            Song second = Library.getSong(y);
+
+            return compareSongs(first, second);
         });
+
+        artistColumn.setComparator((first, second) -> Library.getArtist(first).compareTo(Library.getArtist(second)));
+
+        albumColumn.setComparator((first, second) -> Library.getAlbum(first).compareTo(Library.getAlbum(second)));
     }
-    
+
+    private int compareSongs(Song x, Song y) {
+        if (x == null && y == null) {
+            return 0;
+        } else if (x == null) {
+            return 1;
+        } else if (y == null) {
+            return -1;
+        }
+        if (x.getTitle() == null && y.getTitle() == null) {
+            // Both are equal.
+            return 0;
+        } else if (x.getTitle() == null) {
+            // Null is after other strings.
+            return 1;
+        } else if (y.getTitle() == null) {
+            // All other strings are before null.
+            return -1;
+        } else  /*(x.getTitle() != null && y.getTitle() != null)*/ {
+            return x.getTitle().compareTo(y.getTitle());
+        }
+    }
+
     @Override
     public void play() {
+
         Song song = selectedSong;
-        ObservableList<Song> songs = selectedPlaylist.getSongs();
+        ObservableList<Song> songList = tableView.getItems();
         if (MusicPlayer.isShuffleActive()) {
-            Collections.shuffle(songs);
-            songs.remove(song);
-            songs.add(0, song);
+            Collections.shuffle(songList);
+            songList.remove(song);
+            songList.add(0, song);
         }
-        MusicPlayer.setNowPlayingList(songs);
+        MusicPlayer.setNowPlayingList(songList);
         MusicPlayer.setNowPlaying(song);
         MusicPlayer.play();
     }
 
-    void selectPlaylist(Playlist playlist) {
-        // Displays the delete button only if the user has not selected one of the default playlists.
-        if (playlist instanceof MostPlayedPlaylist || playlist instanceof RecentlyPlayedPlaylist) {
-            deleteButton.setVisible(false);
+    @Override
+    public void scroll(char letter) {
+
+        if (tableView.getSortOrder().size() > 0) {
+            currentSortColumn = tableView.getSortOrder().get(0).getId();
+            currentSortOrder = tableView.getSortOrder().get(0).getSortType().toString().toLowerCase();
         }
 
-        // Sets the text on the play list title label.
-        playlistTitleLabel.setText(playlist.getTitle());
+        // Retrieves songs from table.
+        ObservableList<Song> songTableItems = tableView.getItems();
+        // Initializes counter for cells. Used to determine what cell to scroll to.
+        int selectedCell = 0;
+        int selectedLetterCount = 0;
 
-        // Updates the currently selected play list.
-        selectedPlaylist = playlist;
+        // Retrieves the table view scroll bar.
+        if (scrollBar == null) {
+            scrollBar = (ScrollBar) tableView.lookup(".scroll-bar");
+        }
 
-        // Retrieves the songs in the selected play list.
-        ObservableList<Song> songs = playlist.getSongs();
-        
-        // Clears the song table.
-        tableView.getSelectionModel().clearSelection();
-        
-        // Populates the song table with the playlist's songs.
-        tableView.setItems(songs);
+        switch (currentSortColumn) {
+            case "titleColumn":
+                for (Song song : songTableItems) {
+                    // Gets song title and compares first letter to selected letter.
+                    String songTitle = song.getTitle();
+                    try {
+                        char firstLetter = songTitle.charAt(0);
+                        if (firstLetter < letter) {
+                            selectedCell++;
+                        } else if (firstLetter == letter) {
+                            selectedLetterCount++;
+                        }
+                    } catch (NullPointerException npe) {
+                        System.out.println("Null Song Title");
+                    }
 
-        Label message = new Label(selectedPlaylist.getPlaceholder());
-        message.setTextAlignment(TextAlignment.CENTER);
+                }
+                break;
+            case "artistColumn":
+                for (Song song : songTableItems) {
+                    // Removes article from song artist and compares it to selected letter.
+                    String songArtist = song.getArtist();
+                    try {
+                        char firstLetter = removeArticle(songArtist).charAt(0);
+                        if (firstLetter < letter) {
+                            selectedCell++;
+                        } else if (firstLetter == letter) {
+                            selectedLetterCount++;
+                        }
+                    } catch (NullPointerException npe) {
+                        System.out.println("Null Song Artist");
+                    }
+                }
+                break;
+            case "albumColumn":
+                for (Song song : songTableItems) {
+                    // Removes article from song album and compares it to selected letter.
+                    String songAlbum = song.getAlbum();
+                    try {
+                        char firstLetter = removeArticle(songAlbum).charAt(0);
+                        if (firstLetter < letter) {
+                            selectedCell++;
+                        } else if (firstLetter == letter) {
+                            selectedLetterCount++;
+                        }
+                    } catch (NullPointerException npe) {
+                        System.out.println("Null Song Album");
+                    }
+                }
+                break;
+        }
 
-        ImageView image = new ImageView();
-        image.setFitHeight(150);
-        image.setFitWidth(150);
-        image.setImage(new Image(Resources.IMG + "playlistsIcon.png"));
+        double startVvalue = scrollBar.getValue();
+        double finalVvalue;
 
-        VBox placeholder = new VBox();
-        placeholder.setAlignment(Pos.CENTER);
-        placeholder.getChildren().addAll(image, message);
-        VBox.setMargin(image, new Insets(0, 0, 50, 0));
+        if ("descending".equals(currentSortOrder)) {
+            finalVvalue = 1 - (((selectedCell + selectedLetterCount) * 50 - scrollBar.getHeight()) /
+                    (songTableItems.size() * 50 - scrollBar.getHeight()));
+        } else {
+            finalVvalue = (double) (selectedCell * 50) / (songTableItems.size() * 50 - scrollBar.getHeight());
+        }
 
-        tableView.setPlaceholder(placeholder);
+        Animation scrollAnimation = new Transition() {
+            {
+                setCycleDuration(Duration.millis(500));
+            }
+            protected void interpolate(double frac) {
+                double vValue = startVvalue + ((finalVvalue - startVvalue) * frac);
+                scrollBar.setValue(vValue);
+            }
+        };
+        scrollAnimation.play();
     }
-    
-    @Override
-    public void scroll(char letter) {}
 
-    @Override
+    private String removeArticle(String title) {
+
+        String arr[] = title.split(" ", 2);
+
+        if (arr.length < 2) {
+            return title;
+        } else {
+
+            String firstWord = arr[0];
+            String theRest = arr[1];
+
+            switch (firstWord) {
+                case "A":
+                case "An":
+                case "The":
+                    return theRest;
+                default:
+                    return title;
+            }
+        }
+    }
+
     public Song getSelectedSong() {
         return selectedSong;
-    }
-    
-    Playlist getSelectedPlaylist() {
-        return selectedPlaylist;
-    }
-    
-    void deleteSelectedRow() {
-        // Retrieves the table view items and the selected item.
-        ObservableList<Song> allSongs, selectedSong;
-        allSongs = tableView.getItems();
-        selectedSong = tableView.getSelectionModel().getSelectedItems();
-
-        // Removes the selected item from the table view.
-        selectedSong.forEach(allSongs::remove);
-    }
-    
-    @FXML
-    private void playPlaylist() {
-        ObservableList<Song> songs = selectedPlaylist.getSongs();
-        MusicPlayer.setNowPlayingList(songs);
-        MusicPlayer.setNowPlaying(songs.get(0));
-        MusicPlayer.play();
-    }
-    
-    @FXML
-    private void deletePlaylist() {
-        if (!deletePlaylistAnimation.getStatus().equals(Status.RUNNING)) {
-            // Gets the title of the selected playlist to compare it against the labels of the playlist boxes.
-            String selectedPlaylistTitle = selectedPlaylist.getTitle();
-
-            // Gets the playlist box children to loop through each to find the correct child to remove.
-            ObservableList<Node> playlistBoxChildren = MusicPlayer.getMainController().getPlaylistBox().getChildren();
-
-            // Initialize i at 1 to ignore the new playlist cell.
-            for (int i = 1; i <= playlistBoxChildren.size(); i++) {
-                // Gets each cell in the playlist box and retrieves the cell's label.
-                cell = (HBox) playlistBoxChildren.get(i);
-                Label cellLabel = (Label) cell.getChildren().get(1);
-
-                // Ends the process if the cell's label matches the selected playlist's title.
-                if (cellLabel.getText().equals(selectedPlaylistTitle)) {
-                    break;
-                }
-            }
-
-            deletePlaylistAnimation.play();
-
-            // Deletes the play list from the xml file.
-            XMLEditor.deletePlaylistFromXML(selectedPlaylist.getId());
-
-            // Loads the artists view.
-            MusicPlayer.getMainController().loadView("artists");
-
-            // Removes the selected playlist from the library so that it is not reloaded.
-            Library.removePlaylist(selectedPlaylist);
-
-            // Resets the selected playlist to avoid storing the deleted playlist's data.
-            selectedPlaylist = null;
-        }
     }
 }
