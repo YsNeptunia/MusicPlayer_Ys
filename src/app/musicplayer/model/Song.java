@@ -98,11 +98,21 @@ public final class Song implements Comparable<Song> {
         this.streamingId = new SimpleStringProperty();
     }
 
+    //流媒体歌曲的构造方法
+    public Song(String title, String artist, String album, String id) {
+        this.title = new SimpleStringProperty(title);
+        this.artist = new SimpleStringProperty(artist);
+        this.album = new SimpleStringProperty(album);
+        this.playCount = new SimpleIntegerProperty(0);
+        this.playing = new SimpleBooleanProperty(false);
+        this.selected = new SimpleBooleanProperty(false);
+        this.streamingId = new SimpleStringProperty(id);
+    }
     public String getStreamingId() {
-        return streamingId.get();
+        return this.streamingId.get();
     }
     public StringProperty streamingIdProperty() {
-        return streamingId;
+        return this.streamingId;
     }
     public void setStreamingId(String streamingId) {
         this.streamingId.set(streamingId);

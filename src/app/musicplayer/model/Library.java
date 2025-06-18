@@ -57,6 +57,7 @@ public final class Library {
     private static ArrayList<Playlist> playlists;
     private static int maxProgress;
     private static ImportMusicTask<Boolean> task;
+    private static List<Song> streamingsongs = new ArrayList<>();
 
     public static void importMusic(String path, ImportMusicTask<Boolean> task) throws Exception {
 
@@ -244,6 +245,9 @@ public final class Library {
         return FXCollections.observableArrayList(songs);
     }
 
+    public static ObservableList<Song> getSongs(String msg) {//流媒体歌曲获取
+        return FXCollections.observableArrayList(streamingsongs);
+    }
     private static Song getSong(int id) {
         if (songs == null) {
             getSongs();
@@ -258,14 +262,37 @@ public final class Library {
         return songs.stream().filter(song -> title.equals(song.getTitle())).findFirst().get();
     }
 
+    // 添加流媒体歌曲
+    public static void addStreamingSong(Song song) {
+        if (streamingsongs == null) {
+            streamingsongs = new ArrayList<>();
+        }
+        streamingsongs.add(song);
+    }
+
+    // 清空流媒体歌曲
+    public static void clearStreamingSongs() {
+        if (streamingsongs != null) {
+            streamingsongs.clear();
+        } else {
+            streamingsongs = new ArrayList<>();
+        }
+    }
+
+// 更新歌曲列表
     private static void updateSongsList() {
         try {
 
+            // 创建XMLInputFactory实例
             XMLInputFactory factory = XMLInputFactory.newInstance();
+            // 设置属性，将多个连续的空白字符合并为一个
             factory.setProperty("javax.xml.stream.isCoalescing", true);
+            // 创建FileInputStream对象，读取library.xml文件
             FileInputStream is = new FileInputStream(new File(Resources.JAR + "library.xml"));
+            // 创建XMLStreamReader对象，读取XML文件
             XMLStreamReader reader = factory.createXMLStreamReader(is, "UTF-8");
 
+            // 定义变量，用于存储XML文件中的数据
             String element = "";
             int id = -1;
             String title = null;
@@ -278,16 +305,21 @@ public final class Library {
             LocalDateTime playDate = null;
             String location = null;
 
+            // 循环读取XML文件
             while(reader.hasNext()) {
                 reader.next();
 
+                // 如果是空白字符，则跳过
                 if (reader.isWhiteSpace()) {
                     continue;
+                // 如果是开始标签，则获取标签名
                 } else if (reader.isStartElement()) {
                     element = reader.getName().getLocalPart();
+                // 如果是字符数据，则获取数据
                 } else if (reader.isCharacters()) {
                     String value = reader.getText();
 
+                    // 根据标签名，将数据存储到对应的变量中
                     switch (element) {
                         case ID:
                             id = Integer.parseInt(value);
@@ -320,6 +352,7 @@ public final class Library {
                             location = value;
                             break;
                     } // End switch
+                // 如果是结束标签，且标签名为"song"，则将数据添加到songs列表中，并重置变量
                 } else if (reader.isEndElement() && reader.getName().getLocalPart().equals("song")) {
 
                     songs.add(new Song(id, title, artist, album, length, trackNumber, discNumber, playCount, playDate, location));
@@ -334,6 +367,7 @@ public final class Library {
                     playDate = null;
                     location = null;
 
+                // 如果是结束标签，且标签名为"songs"，则关闭XMLStreamReader对象，跳出循环
                 } else if (reader.isEndElement() && reader.getName().getLocalPart().equals("songs")) {
 
                     reader.close();
@@ -341,9 +375,11 @@ public final class Library {
                 }
             } // End while
 
+            // 关闭XMLStreamReader对象
             reader.close();
 
         } catch (Exception ex) {
+            // 打印异常信息
             ex.printStackTrace();
         }
     }
