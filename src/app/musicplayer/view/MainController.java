@@ -207,7 +207,16 @@ public class MainController implements Initializable, IntellitypeListener {
                 if (albums > 0) height += (albums * 50) + 50;
                 if (songs > 0) height += (songs * 50) + 50;
                 if (height == 0) height = 50;
-                // 设置搜索弹出框的高度
+
+				boolean hasLocalResults = (artists > 0 || albums > 0 || songs > 0);
+
+				// 增加网络搜索控件高度 (50px) 和分隔线高度 (20px)
+				height += 50 + (hasLocalResults ? 20 : 0);
+
+				// 没有本地结果时增加"No Results"标签高度
+				if (!hasLocalResults) height += 50;
+
+				// 设置搜索弹出框的高度
                 searchPopup.setHeight(height);
             }
 		});
@@ -965,7 +974,12 @@ public class MainController implements Initializable, IntellitypeListener {
         VBox root = (VBox) searchPopup.getScene().getRoot();
         ObservableList<Node> list = root.getChildren();
         list.clear();
+
+		// 记录是否有本地搜索结果
+		boolean hasLocalResults = false;
+
         if (result.getArtistResults().size() > 0) {
+			hasLocalResults = true;
             Label header = new Label("Artists");
             list.add(header);
             VBox.setMargin(header, new Insets(10, 10, 10, 10));
@@ -1000,6 +1014,7 @@ public class MainController implements Initializable, IntellitypeListener {
             VBox.setMargin(separator, new Insets(10, 10, 0, 10));
         }
         if (result.getAlbumResults().size() > 0) {
+			hasLocalResults = true;
             Label header = new Label("Albums");
             list.add(header);
             VBox.setMargin(header, new Insets(10, 10, 10, 10));
@@ -1036,6 +1051,7 @@ public class MainController implements Initializable, IntellitypeListener {
             VBox.setMargin(separator, new Insets(10, 10, 0, 10));
         }
         if (result.getSongResults().size() > 0) {
+			hasLocalResults = true;
             Label header = new Label("Songs");
             list.add(header);
             VBox.setMargin(header, new Insets(10, 10, 10, 10));
@@ -1065,19 +1081,19 @@ public class MainController implements Initializable, IntellitypeListener {
             });
         }
 		// 在原有搜索结果下方添加固定文本控件
-		if (list.size() > 0) {
+		if (hasLocalResults) {
 			Separator bottomSeparator = new Separator();
 			bottomSeparator.setPrefWidth(206);
 			list.add(bottomSeparator);
 			VBox.setMargin(bottomSeparator, new Insets(10, 10, 0, 10));
 		}
 
-		// 新增的固定文本控件
+		// 网络搜索控件
 		HBox moreBox = new HBox();
 		moreBox.setAlignment(Pos.CENTER_LEFT);
 		moreBox.setPrefWidth(226);
 		moreBox.setPrefHeight(50);
-		Label moreLabel = new Label("Search on the Internet...");
+		Label moreLabel = new Label("Search online for:\""+searchBox.getText()+"\"");//转义符，显示用户搜索的关键词
 		moreLabel.setTextOverrun(OverrunStyle.CLIP);
 		moreLabel.getStyleClass().setAll("searchLabel");
 		moreBox.getChildren().add(moreLabel);
@@ -1101,7 +1117,7 @@ public class MainController implements Initializable, IntellitypeListener {
 		});
 		list.add(moreBox);
 
-        if (list.size() == 1) {
+        if (!hasLocalResults) {
             Label label = new Label("No Results");
             list.add(label);
             VBox.setMargin(label, new Insets(10, 10, 10, 10));

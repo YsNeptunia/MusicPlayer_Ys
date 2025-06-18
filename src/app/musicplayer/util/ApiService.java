@@ -25,8 +25,8 @@ public class ApiService {
                 URL url = new URL(apiUrl);
                 HttpURLConnection conn = (HttpURLConnection) url.openConnection();
                 conn.setRequestMethod("GET");
-                conn.setConnectTimeout(5000);
-                conn.setReadTimeout(10000);
+                conn.setConnectTimeout(10000);
+                conn.setReadTimeout(30000);
 
                 responseCode = conn.getResponseCode();
                 if (responseCode == HttpURLConnection.HTTP_OK) {
@@ -39,6 +39,7 @@ public class ApiService {
                             response.append(inputLine);
                         }
 
+                        saveKeywordToTxt(searchTerm);
                         saveApiResponseToJson(response.toString());
                     }
                 }
@@ -59,6 +60,17 @@ public class ApiService {
         // 覆盖写入JSON文件
         try (FileWriter writer = new FileWriter(jsonFile)) {
             writer.write(jsonResponse);
+        }
+    }
+
+    private static void saveKeywordToTxt(String keyword) throws IOException {
+        // 获取项目out目录
+        File saveDir = new File("./out/production");
+        File keyFile = new File(saveDir, "keyword.txt");
+
+        // 覆盖写入TXT文件
+        try (FileWriter writer = new FileWriter(keyFile)) {
+            writer.write(keyword);
         }
     }
 }

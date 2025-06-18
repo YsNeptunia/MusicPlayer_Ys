@@ -1,6 +1,9 @@
 package app.musicplayer.view;
 
+import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileReader;
+import java.io.IOException;
 import java.net.URL;
 import java.util.ResourceBundle;
 
@@ -15,6 +18,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import javafx.animation.Animation;
 import javafx.animation.Transition;
+import javafx.beans.property.SimpleStringProperty;
 import javafx.beans.value.ChangeListener;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
@@ -23,10 +27,7 @@ import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
 import javafx.geometry.Rectangle2D;
 import javafx.scene.Scene;
-import javafx.scene.control.ScrollBar;
-import javafx.scene.control.TableColumn;
-import javafx.scene.control.TableRow;
-import javafx.scene.control.TableView;
+import javafx.scene.control.*;
 import javafx.scene.control.TableView.TableViewSelectionModel;
 import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.scene.image.ImageView;
@@ -50,6 +51,7 @@ public class StreamingController implements Initializable, SubView {
     @FXML private TableColumn<Song, String> albumColumn;
     @FXML private TableColumn<Song, String> idColumn;
     @FXML private TableColumn<Song, Integer> playsColumn;
+    @FXML private Label searchKey;
 
     private MusicPlayer musicPlayer;
 
@@ -105,6 +107,16 @@ public class StreamingController implements Initializable, SubView {
             tableView.requestFocus();
             event.consume();
         });
+
+        String keywords = "";
+        //从txt中读取关键词
+        try (BufferedReader br = new BufferedReader(new FileReader("./out/production/keyword.txt"))) {
+            keywords = br.readLine(); // 读取第一行（即唯一的单词）
+        } catch (IOException e) {
+            e.printStackTrace(); // 捕获并打印异常
+        }
+        //在右上角的Label fx:id="searchKey"中填入字符串
+        searchKey.setText("Search results of: \""+keywords+"\"");
 
         // 加载流媒体歌曲
         String jsonPath = new File("./out/production/api_search_results.json").getAbsolutePath();

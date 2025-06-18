@@ -16,6 +16,7 @@
                         <Insets bottom="10.0" top="10.0" />
                     </HBox.margin>
                 </Separator>
+                <Label fx:id="searchKey" maxHeight="-Infinity" minHeight="-Infinity" prefHeight="50.0" textOverrun="CLIP"/>
             </children>
         </HBox>
         <TableView fx:id="tableView" fixedCellSize="50.0" focusTraversable="false" VBox.vgrow="ALWAYS">
