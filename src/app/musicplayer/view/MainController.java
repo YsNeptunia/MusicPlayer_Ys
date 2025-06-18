@@ -1080,6 +1080,12 @@ public class MainController implements Initializable, IntellitypeListener {
                 list.add(cell);
             });
         }
+		if (!hasLocalResults) {
+			Label label = new Label("No Results");
+			list.add(label);
+			VBox.setMargin(label, new Insets(10, 10, 10, 10));
+		}
+
 		// 在原有搜索结果下方添加固定文本控件
 		if (hasLocalResults) {
 			Separator bottomSeparator = new Separator();
@@ -1117,11 +1123,6 @@ public class MainController implements Initializable, IntellitypeListener {
 		});
 		list.add(moreBox);
 
-        if (!hasLocalResults) {
-            Label label = new Label("No Results");
-            list.add(label);
-            VBox.setMargin(label, new Insets(10, 10, 10, 10));
-        }
         if (!searchPopup.isShowing()) {
             Stage stage = MusicPlayer.getStage();
             searchPopup.setX(stage.getX() + 18);
