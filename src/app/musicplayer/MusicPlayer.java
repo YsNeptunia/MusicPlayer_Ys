@@ -36,6 +36,7 @@ import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.VBox;
 import javafx.scene.media.Media;
 import javafx.scene.media.MediaPlayer;
+import javafx.scene.web.WebEngine;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
 import javafx.stage.StageStyle;
@@ -69,6 +70,10 @@ public class MusicPlayer extends Application {
     // 因为最后一个分配的id不一定等于xml文件中的歌曲数量，
     // 因为可能已经删除了歌曲。
     private static int lastIdAssigned;
+
+    // 流媒体小播放器
+    private static Stage streamingPlayer;
+    private static WebEngine streamingEngine;
 
     public static void main(String[] args) {
         Application.launch(MusicPlayer.class);
@@ -449,6 +454,8 @@ public class MusicPlayer extends Application {
      */
     public static void play() {
         if (mediaPlayer != null && !isPlaying()) {
+            // 在本地播放开始时禁用流媒体播放器
+            MusicPlayer.closeStreamingPlayer();
             mediaPlayer.play();
             timer.scheduleAtFixedRate(new TimeUpdater(), 0, 250);
             mainController.updatePlayPauseIcon(true);
@@ -747,5 +754,32 @@ public class MusicPlayer extends Application {
 
     public static void setLastIdAssigned(int i) {
         lastIdAssigned = i;
+    }
+
+    public static void setStreamingPlayer(Stage player, WebEngine engine) {
+        if (streamingPlayer != null) {
+            if (streamingPlayer != null) {
+                // 先停止当前播放
+                streamingEngine.load("about:blank");
+                streamingPlayer.close();
+            }
+        }
+        streamingPlayer = player;
+        streamingEngine = engine;
+    }
+
+    public static void closeStreamingPlayer() {
+        if (streamingPlayer != null) {
+            // 加载空白页面停止播放
+            streamingEngine.load("about:blank");
+            streamingPlayer.close();
+            streamingPlayer = null;
+            streamingEngine = null;
+        }
+    }
+
+    public static Stage getPrimaryStage() {
+        // 返回主舞台对象，流媒体用
+        return stage;
     }
 }

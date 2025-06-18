@@ -27,6 +27,7 @@ import javafx.css.PseudoClass;
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
 import javafx.geometry.Rectangle2D;
+import javafx.scene.Scene;
 import javafx.scene.control.ScrollBar;
 import javafx.scene.control.SelectionMode;
 import javafx.scene.control.TableColumn;
@@ -40,6 +41,12 @@ import javafx.scene.input.Dragboard;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.input.TransferMode;
+import javafx.scene.layout.StackPane;
+import javafx.scene.paint.Color;
+import javafx.scene.web.WebEngine;
+import javafx.scene.web.WebView;
+import javafx.stage.Stage;
+import javafx.stage.StageStyle;
 import javafx.util.Duration;
 
 public class StreamingController implements Initializable, SubView {
@@ -61,8 +68,6 @@ public class StreamingController implements Initializable, SubView {
     private String currentSortOrder = null;
 
     private Song selectedSong;
-
-    private final ObjectMapper mapper = new ObjectMapper();
 
     @Override
     public void initialize(URL location, ResourceBundle resources) {
@@ -142,6 +147,7 @@ public class StreamingController implements Initializable, SubView {
             row.setOnMouseClicked(event -> {
                 TableViewSelectionModel<Song> sm = tableView.getSelectionModel();
                 if (event.getClickCount() == 2 && !row.isEmpty()) {
+                    selectedSong = row.getItem();
                     play();
                 } else if (event.isShiftDown()) {
                     // Shift+点击处理...
@@ -152,9 +158,23 @@ public class StreamingController implements Initializable, SubView {
                 }
             });
 
-            // 保留拖拽检测
             row.setOnDragDetected(event -> {
-                // 拖拽处理逻辑...
+                Dragboard db = row.startDragAndDrop(TransferMode.ANY);
+                ClipboardContent content = new ClipboardContent();
+                if (tableView.getSelectionModel().getSelectedIndices().size() > 1) {
+                    content.putString("List");
+                    db.setContent(content);
+                    MusicPlayer.setDraggedItem(tableView.getSelectionModel().getSelectedItems());
+                } else {
+                    content.putString("Song");
+                    db.setContent(content);
+                    MusicPlayer.setDraggedItem(row.getItem());
+                }
+                ImageView image = new ImageView(row.snapshot(null, null));
+                Rectangle2D rectangle = new Rectangle2D(0, 0, 250, 50);
+                image.setViewport(rectangle);
+                db.setDragView(image.snapshot(null, null), 125, 25);
+                event.consume();
             });
 
             return row;
@@ -165,41 +185,79 @@ public class StreamingController implements Initializable, SubView {
             // 选中项变化处理...
         });
 
-        // 保留回车键播放功能
-        tableView.setOnKeyPressed(event -> {
-            if (event.getCode().equals(KeyCode.ENTER)) {
-                play();
-            }
-        });
-
         // 移除所有列的比较器设置（排序功能）
         // titleColumn.setComparator(...) 等代码已移除
     }
-    private int compareSongs(Song x, Song y) {
-        if (x == null && y == null) {
-            return 0;
-        } else if (x == null) {
-            return 1;
-        } else if (y == null) {
-            return -1;
-        }
-        if (x.getTitle() == null && y.getTitle() == null) {
-            // Both are equal.
-            return 0;
-        } else if (x.getTitle() == null) {
-            // Null is after other strings.
-            return 1;
-        } else if (y.getTitle() == null) {
-            // All other strings are before null.
-            return -1;
-        } else  /*(x.getTitle() != null && y.getTitle() != null)*/ {
-            return x.getTitle().compareTo(y.getTitle());
-        }
-    }
+//    private int compareSongs(Song x, Song y) {
+//        if (x == null && y == null) {
+//            return 0;
+//        } else if (x == null) {
+//            return 1;
+//        } else if (y == null) {
+//            return -1;
+//        }
+//        if (x.getTitle() == null && y.getTitle() == null) {
+//            // Both are equal.
+//            return 0;
+//        } else if (x.getTitle() == null) {
+//            // Null is after other strings.
+//            return 1;
+//        } else if (y.getTitle() == null) {
+//            // All other strings are before null.
+//            return -1;
+//        } else  /*(x.getTitle() != null && y.getTitle() != null)*/ {
+//            return x.getTitle().compareTo(y.getTitle());
+//        }
+//    }
 
     @Override
     public void play() {
+        MusicPlayer.pause();
+        // 关闭之前的播放器（如果有）
+        MusicPlayer.closeStreamingPlayer();
+        // 获取当前选中的歌曲
+        Song song = selectedSong;
+        if (song == null) return;
 
+        // 获取歌曲的流媒体ID
+//        String streamingId = song.getStreamingId();
+
+        // 创建WebView播放器
+        WebView webView = new WebView();
+        WebEngine engine = webView.getEngine();
+        engine.setJavaScriptEnabled(true);
+
+        // 构建播放器HTML内容
+        String playerHTML = "<!DOCTYPE html><html><body style='margin:0;padding:0;overflow:hidden;'>"
+                + "<iframe src='https://music.163.com/outchain/player?type=2&id=" + selectedSong.getStreamingId()//2156184186
+                + "&auto=1&height=66' width='280' height='86' frameborder='no' border='0'"
+                + " marginwidth='0' marginheight='0' scrolling='no'></iframe></body></html>";
+
+        engine.loadContent(playerHTML);
+
+        // 创建播放器容器
+        StackPane playerContainer = new StackPane(webView);
+        playerContainer.setStyle("-fx-background-color: transparent;");
+
+        // 创建播放器窗口
+        Stage playerStage = new Stage();
+        playerStage.initStyle(StageStyle.TRANSPARENT);
+        playerStage.setScene(new Scene(playerContainer, 280, 86, Color.TRANSPARENT));
+
+        // 设置窗口位置（覆盖本地播放栏）
+        playerStage.setX(MusicPlayer.getPrimaryStage().getX()); // 水平偏移量
+        playerStage.setY(MusicPlayer.getPrimaryStage().getY() + MusicPlayer.getPrimaryStage().getHeight() - 145); // 垂直位置
+
+        // 显示播放器
+        playerStage.show();
+
+        // 保存引用以便后续关闭
+        MusicPlayer.setStreamingPlayer(playerStage, engine);
+    }
+
+//    @Override
+//    public void play() {
+//
 //        Song song = selectedSong;
 //        ObservableList<Song> songList = tableView.getItems();
 //        if (MusicPlayer.isShuffleActive()) {
@@ -210,7 +268,7 @@ public class StreamingController implements Initializable, SubView {
 //        MusicPlayer.setNowPlayingList(songList);
 //        MusicPlayer.setNowPlaying(song);
 //        MusicPlayer.play();
-    }
+//    }
 
     @Override
     public void scroll(char letter) {
