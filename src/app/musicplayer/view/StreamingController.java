@@ -1,10 +1,7 @@
 package app.musicplayer.view;
 
 import java.io.File;
-import java.io.IOException;
 import java.net.URL;
-import java.util.ArrayList;
-import java.util.Collections;
 import java.util.ResourceBundle;
 
 import app.musicplayer.MusicPlayer;
@@ -14,12 +11,10 @@ import app.musicplayer.util.ClippedTableCell;
 import app.musicplayer.util.ControlPanelTableCell;
 import app.musicplayer.util.PlayingTableCell;
 import app.musicplayer.util.SubView;
-import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import javafx.animation.Animation;
 import javafx.animation.Transition;
-import javafx.beans.property.SimpleStringProperty;
 import javafx.beans.value.ChangeListener;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
@@ -29,7 +24,6 @@ import javafx.fxml.Initializable;
 import javafx.geometry.Rectangle2D;
 import javafx.scene.Scene;
 import javafx.scene.control.ScrollBar;
-import javafx.scene.control.SelectionMode;
 import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableRow;
 import javafx.scene.control.TableView;
@@ -38,7 +32,6 @@ import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.scene.image.ImageView;
 import javafx.scene.input.ClipboardContent;
 import javafx.scene.input.Dragboard;
-import javafx.scene.input.KeyCode;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.input.TransferMode;
 import javafx.scene.layout.StackPane;
@@ -114,7 +107,7 @@ public class StreamingController implements Initializable, SubView {
         });
 
         // 加载流媒体歌曲
-        String jsonPath = new File("./apitest.json").getAbsolutePath();
+        String jsonPath = new File("./out/production/api_search_results.json").getAbsolutePath();
         updateSongsListFromJSON(jsonPath);
         ObservableList<Song> songs = FXCollections.observableArrayList(Library.getSongs("test"));
 //        ObservableList<Song> songs = Library.getSongs();
@@ -245,8 +238,8 @@ public class StreamingController implements Initializable, SubView {
         playerStage.setScene(new Scene(playerContainer, 280, 86, Color.TRANSPARENT));
 
         // 设置窗口位置（覆盖本地播放栏）
-        playerStage.setX(MusicPlayer.getPrimaryStage().getX()); // 水平偏移量
-        playerStage.setY(MusicPlayer.getPrimaryStage().getY() + MusicPlayer.getPrimaryStage().getHeight() - 145); // 垂直位置
+        playerStage.setX(MusicPlayer.getStage().getX()); // 水平偏移量
+        playerStage.setY(MusicPlayer.getStage().getY() + MusicPlayer.getStage().getHeight() - 145); // 垂直位置
 
         // 显示播放器
         playerStage.show();

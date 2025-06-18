@@ -33,10 +33,7 @@ import javafx.scene.Scene;
 import javafx.scene.SnapshotParameters;
 import javafx.scene.control.*;
 import javafx.scene.image.ImageView;
-import javafx.scene.input.ClipboardContent;
-import javafx.scene.input.Dragboard;
-import javafx.scene.input.KeyCode;
-import javafx.scene.input.TransferMode;
+import javafx.scene.input.*;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Pane;
 import javafx.scene.layout.Region;
@@ -45,6 +42,8 @@ import javafx.scene.transform.Transform;
 import javafx.stage.Stage;
 import javafx.stage.StageStyle;
 import javafx.util.Duration;
+
+import app.musicplayer.util.ApiSearchTask;
 
 public class MainController implements Initializable, IntellitypeListener {
 
@@ -525,31 +524,45 @@ public class MainController implements Initializable, IntellitypeListener {
     @FXML
     private void selectView(Event e) {
 
+        // 获取事件源
         HBox eventSource = ((HBox)e.getSource());
 
+        // 设置焦点
         eventSource.requestFocus();
 
+        // 获取之前选中的节点
         Optional<Node> previous = sideBar.getChildren().stream()
             .filter(x -> x.getStyleClass().get(0).equals("sideBarItemSelected")).findFirst();
 
+        // 如果之前有选中的节点
         if (previous.isPresent()) {
+            // 将之前选中的节点样式设置为未选中
             HBox previousItem = (HBox) previous.get();
             previousItem.getStyleClass().setAll("sideBarItem");
         } else {
+        	// 如果之前没有选中的节点，则从playlistBox中获取
         	previous = playlistBox.getChildren().stream()
                     .filter(x -> x.getStyleClass().get(0).equals("sideBarItemSelected")).findFirst();
+        	// 如果playlistBox中有选中的节点
         	if (previous.isPresent()) {
+                // 将之前选中的节点样式设置为未选中
                 HBox previousItem = (HBox) previous.get();
                 previousItem.getStyleClass().setAll("sideBarItem");
             }
         }
 
+        // 获取当前节点的样式
         ObservableList<String> styles = eventSource.getStyleClass();
 
+        // 如果当前节点样式为未选中
         if (styles.get(0).equals("sideBarItem")) {
+            // 将当前节点样式设置为选中
             styles.setAll("sideBarItemSelected");
+            // 加载视图
             loadView(eventSource.getId());
+        // 如果当前节点样式为底部栏项
         } else if (styles.get(0).equals("bottomBarItem")) {
+            // 加载视图
             loadView(eventSource.getId());
         }
     }
@@ -1051,7 +1064,44 @@ public class MainController implements Initializable, IntellitypeListener {
                 list.add(cell);
             });
         }
-        if (list.size() == 0) {
+		// 在原有搜索结果下方添加固定文本控件
+		if (list.size() > 0) {
+			Separator bottomSeparator = new Separator();
+			bottomSeparator.setPrefWidth(206);
+			list.add(bottomSeparator);
+			VBox.setMargin(bottomSeparator, new Insets(10, 10, 0, 10));
+		}
+
+		// 新增的固定文本控件
+		HBox moreBox = new HBox();
+		moreBox.setAlignment(Pos.CENTER_LEFT);
+		moreBox.setPrefWidth(226);
+		moreBox.setPrefHeight(50);
+		Label moreLabel = new Label("Search on the Internet...");
+		moreLabel.setTextOverrun(OverrunStyle.CLIP);
+		moreLabel.getStyleClass().setAll("searchLabel");
+		moreBox.getChildren().add(moreLabel);
+		HBox.setMargin(moreLabel, new Insets(10, 10, 10, 10));
+		moreBox.getStyleClass().add("searchResult");
+		moreBox.setOnMouseClicked(event -> {
+			String searchTerm = searchBox.getText().trim();
+			if (!searchTerm.isEmpty()) {
+				// 创建并执行搜索任务
+				ApiSearchTask searchTask = new ApiSearchTask(
+						searchTerm,
+						() -> showNotification("API搜索完成", "结果已保存到本地"),
+						() -> showNotification("API搜索失败", getExceptionMessage())
+				);
+
+				new Thread(searchTask).start();
+			}
+			searchBox.setText("");
+			searchHideAnimation.play();
+			sideBar.requestFocus();
+		});
+		list.add(moreBox);
+
+        if (list.size() == 1) {
             Label label = new Label("No Results");
             list.add(label);
             VBox.setMargin(label, new Insets(10, 10, 10, 10));
@@ -1064,6 +1114,75 @@ public class MainController implements Initializable, IntellitypeListener {
             searchShowAnimation.play();
         }
     }
+
+	// 添加辅助方法获取异常信息
+	private String getExceptionMessage() {
+		Throwable ex = (Throwable) Thread.currentThread().getUncaughtExceptionHandler();
+		return ex != null ? ex.getMessage() : "未知错误";
+	}
+
+	private void showNotification(String title, String message) {
+		Platform.runLater(() -> {
+			Alert alert = new Alert(Alert.AlertType.INFORMATION);
+			alert.setTitle(title);
+			alert.setHeaderText(null);
+			alert.setContentText(message);
+			alert.initOwner(MusicPlayer.getStage());
+
+			// 添加自定义按钮
+			ButtonType viewResultsButton = new ButtonType("查看结果", ButtonBar.ButtonData.OK_DONE);
+			ButtonType closeButton = new ButtonType("关闭", ButtonBar.ButtonData.CANCEL_CLOSE);
+			alert.getButtonTypes().setAll(viewResultsButton, closeButton);
+
+			Optional<ButtonType> result = alert.showAndWait();
+			if (result.isPresent() && result.get() == viewResultsButton) {
+				// 找到流媒体视图的侧边栏项并触发点击事件
+				switchToStreamingView();
+			}
+		});
+	}
+
+	private void switchToStreamingView() {
+		// 找到流媒体视图的侧边栏项
+		HBox streamingItem = null;
+
+		// 在侧边栏中查找
+		for (Node node : sideBar.getChildren()) {
+			if (node instanceof HBox && "Streaming".equals(node.getId())) {
+				streamingItem = (HBox) node;
+				break;
+			}
+		}
+
+		// 如果没找到，在播放列表框中查找
+		if (streamingItem == null) {
+			for (Node node : playlistBox.getChildren()) {
+				if (node instanceof HBox && "streaming".equals(node.getId())) {
+					streamingItem = (HBox) node;
+					break;
+				}
+			}
+		}
+
+		// 如果找到，模拟点击事件
+		if (streamingItem != null) {
+			// 创建模拟点击事件
+			MouseEvent clickEvent = new MouseEvent(
+					MouseEvent.MOUSE_CLICKED,
+					0, 0, 0, 0,
+					MouseButton.PRIMARY, 1,
+					false, false, false, false,
+					true, false, false, false,
+					false, false,
+					null
+			);
+
+			// 触发点击事件
+			streamingItem.fireEvent(clickEvent);
+		} else {
+			showNotification("错误", "无法找到流媒体视图选项");
+		}
+	}
     
     public Slider getVolumeSlider() {
     	return volumePopupController.getSlider();

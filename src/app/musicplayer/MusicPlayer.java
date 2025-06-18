@@ -756,6 +756,7 @@ public class MusicPlayer extends Application {
         lastIdAssigned = i;
     }
 
+    //新建与删除流媒体迷你播放器
     public static void setStreamingPlayer(Stage player, WebEngine engine) {
         if (streamingPlayer != null) {
             if (streamingPlayer != null) {
@@ -776,10 +777,5 @@ public class MusicPlayer extends Application {
             streamingPlayer = null;
             streamingEngine = null;
         }
-    }
-
-    public static Stage getPrimaryStage() {
-        // 返回主舞台对象，流媒体用
-        return stage;
     }
 }
