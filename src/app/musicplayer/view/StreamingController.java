@@ -10,10 +10,7 @@ import java.util.ResourceBundle;
 import app.musicplayer.MusicPlayer;
 import app.musicplayer.model.Library;
 import app.musicplayer.model.Song;
-import app.musicplayer.util.ClippedTableCell;
-import app.musicplayer.util.ControlPanelTableCell;
-import app.musicplayer.util.PlayingTableCell;
-import app.musicplayer.util.SubView;
+import app.musicplayer.util.*;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import javafx.animation.Animation;
@@ -25,18 +22,23 @@ import javafx.collections.ObservableList;
 import javafx.css.PseudoClass;
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
+import javafx.geometry.Insets;
+import javafx.geometry.Pos;
 import javafx.geometry.Rectangle2D;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
 import javafx.scene.control.TableView.TableViewSelectionModel;
 import javafx.scene.control.cell.PropertyValueFactory;
+import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.input.ClipboardContent;
 import javafx.scene.input.Dragboard;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.input.TransferMode;
 import javafx.scene.layout.StackPane;
+import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
+import javafx.scene.text.TextAlignment;
 import javafx.scene.web.WebEngine;
 import javafx.scene.web.WebView;
 import javafx.stage.Stage;
@@ -115,8 +117,28 @@ public class StreamingController implements Initializable, SubView {
         } catch (IOException e) {
             e.printStackTrace(); // 捕获并打印异常
         }
-        //在右上角的Label fx:id="searchKey"中填入字符串
-        searchKey.setText("Search results of: \""+keywords+"\"");
+        //当keywords不为空时，在右上角的Label fx:id="searchKey"中填入字符串
+        if (!keywords.isEmpty()) {
+            searchKey.setText("Search results of: \""+keywords+"\"");
+        }
+
+        // 定义占位符内容
+        Label message = new Label("Enter the keywords in the search bar\nat the top left corner to search");
+        message.setTextAlignment(TextAlignment.CENTER);
+
+        ImageView emptyimage = new ImageView();
+        emptyimage.setFitHeight(150);
+        emptyimage.setFitWidth(150);
+        emptyimage.setImage(new Image(Resources.IMG + "StreamingMusic.png")); // 替换为你的图片路径
+
+        VBox placeholder = new VBox();
+        placeholder.setAlignment(Pos.CENTER);
+        placeholder.getChildren().addAll(emptyimage, message);
+        VBox.setMargin(emptyimage, new Insets(0, 0, 50, 0));
+
+        // 设置占位符
+        tableView.setPlaceholder(placeholder);
+
 
         // 加载流媒体歌曲
         String jsonPath = new File("./out/production/api_search_results.json").getAbsolutePath();
