@@ -103,60 +103,89 @@ public final class Album implements Comparable<Album> {
 
     public void downloadArtwork() {
         try {
+            // 创建XMLInputFactory实例
             XMLInputFactory factory = XMLInputFactory.newInstance();
+            // 创建URL对象，用于获取XML数据
             URL xmlData = new URL(Resources.APIBASE
                     + "method=album.getinfo"
+                    + "&api_key=" + Resources.APIKEY
                     + "&artist=" + URLEncoder.encode(this.artist, "UTF-8")
                     + "&album=" + URLEncoder.encode(this.title, "UTF-8")
-                    + "&api_key=" + Resources.APIKEY);
+                    );
 
+            // 创建XMLStreamReader对象，用于读取XML数据
             XMLStreamReader reader = factory.createXMLStreamReader(xmlData.openStream(), "UTF-8");
 
+            // 循环读取XML数据
             while (reader.hasNext()) {
 
                 reader.next();
 
+                // 如果是开始标签，并且标签名为image，并且属性值为extralarge
                 if (reader.isStartElement()
                         && reader.getName().getLocalPart().equals("image")
                         && reader.getAttributeValue(0).equals("extralarge")) {
 
                     reader.next();
 
+                    // 如果有文本内容
                     if (reader.hasText()) {
+                        // 读取图片数据
                         BufferedImage bufferedImage = ImageIO.read(new URL(reader.getText()));
+                        // 创建新的BufferedImage对象，用于存储图片数据
                         BufferedImage newBufferedImage = new BufferedImage(bufferedImage.getWidth(),
                                 bufferedImage.getHeight(), BufferedImage.TYPE_INT_RGB);
+                        // 将图片数据绘制到新的BufferedImage对象上
                         newBufferedImage.createGraphics().drawImage(bufferedImage, 0, 0, Color.WHITE, null);
+                        // 创建临时文件，用于存储图片数据
                         File file = File.createTempFile("temp", "temp");
+                        // 将图片数据写入临时文件
                         ImageIO.write(newBufferedImage, "jpg", file);
 
+                        // 遍历歌曲列表
                         for (Song song : this.songs) {
 
+                            // 读取音频文件
                             AudioFile audioFile = AudioFileIO.read(new File(song.getLocation()));
+                            // 获取音频文件的标签
                             Tag tag = audioFile.getTag();
+                            // 删除音频文件的封面图片
                             tag.deleteArtworkField();
 
+                            // 创建封面图片对象
                             Artwork artwork = ArtworkFactory.createArtworkFromFile(file);
+                            // 将封面图片添加到音频文件的标签中
                             tag.setField(artwork);
+                            // 将音频文件写入磁盘
                             AudioFileIO.write(audioFile);
                         }
 
+                        // 删除临时文件
                         file.delete();
                     }
                 }
             }
+            // 获取第一首歌曲的路径
             String location = this.songs.get(0).getLocation();
+            // 读取音频文件
             AudioFile audioFile = AudioFileIO.read(new File(location));
+            // 获取音频文件的标签
             Tag tag = audioFile.getTag();
+            // 获取音频文件的封面图片数据
             byte[] bytes = tag.getFirstArtwork().getBinaryData();
+            // 创建ByteArrayInputStream对象，用于读取封面图片数据
             ByteArrayInputStream in = new ByteArrayInputStream(bytes);
+            // 将封面图片数据转换为Image对象
             this.artwork = new Image(in, 300, 300, true, true);
 
+            // 如果转换失败
             if (this.artwork.isError()) {
 
+                // 使用默认的封面图片
                 this.artwork = new Image(Resources.IMG + "albumsIcon.png");
             }
 
+            // 设置封面图片属性
             this.artworkProperty.setValue(artwork);
 
         } catch (Exception ex) {

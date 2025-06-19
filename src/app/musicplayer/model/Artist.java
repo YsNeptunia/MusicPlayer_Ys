@@ -85,7 +85,9 @@ public final class Artist implements Comparable<Artist> {
 
     public void downloadArtistImage() {
         try {
-            File file = new File(Resources.JAR + "/img/" + this.title + ".jpg");
+            // 将歌手名中的斜杠替换为下划线
+            String safeTitle = this.title.replace("/", "_");
+            File file = new File(Resources.JAR + "/img/" + safeTitle + ".jpg");
             file.mkdirs();
             XMLInputFactory factory = XMLInputFactory.newInstance();
             URL xmlData = new URL(Resources.APIBASE

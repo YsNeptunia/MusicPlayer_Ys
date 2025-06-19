@@ -165,13 +165,41 @@ public class MusicPlayer extends Application {
 //            File imgFolder = new File(Resources.JAR + "/img");
 //            if (!imgFolder.exists()) {
 
-            // 改为使用类加载器检查资源是否存在
-            boolean resourcesMissing =
-                    MusicPlayer.class.getResource(Resources.IMG + "Icon.png") == null ||
-                            MusicPlayer.class.getResource(Resources.FXML + "SplashScreen.fxml") == null;
+//            // 改为使用类加载器检查资源是否存在
+//            boolean resourcesMissing =
+//                    MusicPlayer.class.getResource(Resources.IMG + "Icon.png") == null ||
+//                            MusicPlayer.class.getResource(Resources.FXML + "SplashScreen.fxml") == null;
+//
+//            if (resourcesMissing) {
+//                // 下载资源的线程...
+//                Thread thread1 = new Thread(() -> {
+//                    Library.getArtists().forEach(Artist::downloadArtistImage);
+//                });
+//
+//                Thread thread2 = new Thread(() -> {
+//                    Library.getAlbums().forEach(Album::downloadArtwork);
+//                });
+//
+//                thread1.start();
+//                thread2.start();
+//            }
+//
+//            new Thread(() -> {
+//                XMLEditor.getNewSongs().forEach(song -> {
+//                    try {
+//                        Library.getArtist(song.getArtist()).downloadArtistImage();
+//                    } catch (Exception ex) {
+//                        ex.printStackTrace();
+//                    }
+//                });
+//            }).start();
+//
+//            // 调用函数初始化主布局。
+//            Platform.runLater(this::initMain);
+//        });
+            File imgFolder = new File(Resources.JAR + "/img");
+            if (!imgFolder.exists()) {
 
-            if (resourcesMissing) {
-                // 下载资源的线程...
                 Thread thread1 = new Thread(() -> {
                     Library.getArtists().forEach(Artist::downloadArtistImage);
                 });
@@ -194,7 +222,7 @@ public class MusicPlayer extends Application {
                 });
             }).start();
 
-            // 调用函数初始化主布局。
+            // Calls the function to initialize the main layout.
             Platform.runLater(this::initMain);
         });
 

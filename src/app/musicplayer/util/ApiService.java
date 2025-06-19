@@ -44,6 +44,7 @@ public class ApiService {
                     }
                 }
             }catch (Exception e) {
+                e.printStackTrace(); // 打印详细的异常信息
                 throw new IOException("HTTP error code: " + responseCode);
             }
         }
@@ -52,7 +53,7 @@ public class ApiService {
 
     private static void saveApiResponseToJson(String jsonResponse) throws IOException {
         // 获取项目out目录
-        File saveDir = new File("./out/production");
+        File saveDir = new File(Resources.JAR);
 
         // 使用固定文件名
         File jsonFile = new File(saveDir, FIXED_FILENAME);
@@ -65,7 +66,7 @@ public class ApiService {
 
     private static void saveKeywordToTxt(String keyword) throws IOException {
         // 获取项目out目录
-        File saveDir = new File("./out/production");
+        File saveDir = new File(Resources.JAR);
         File keyFile = new File(saveDir, "keyword.txt");
 
         // 覆盖写入TXT文件
