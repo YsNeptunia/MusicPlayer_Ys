@@ -575,6 +575,61 @@ public class MainController implements Initializable, IntellitypeListener {
             loadView(eventSource.getId());
         }
     }
+	@FXML
+	private void navigateToSong() {
+		clearPreviousSelection();
+		selectLyricsItem();
+
+		// 加载视图并获取控制器
+		LyricsController lyricsController = (LyricsController) loadView("Lyrics");
+		if (lyricsController == null) {
+			System.err.println("Failed to load LyricsController");
+			return;
+		}
+
+		Platform.runLater(() -> {
+			// 获取当前播放歌曲并添加日志
+			Song song = MusicPlayer.getNowPlaying();
+			System.out.println("Current song in navigateToCurrentSong: " +
+					(song != null ? song.getTitle() : "NULL"));
+			if (song != null) {
+				// 调用加载歌词方法
+				lyricsController.loadLyrics(song);
+			} else {
+				lyricsController.showNoSongError();
+			}
+		});
+	}
+
+	// 提取清除选中状态的逻辑到单独方法
+	private void clearPreviousSelection() {
+		Optional<Node> previous = sideBar.getChildren().stream()
+				.filter(x -> x.getStyleClass().contains("sideBarItemSelected"))
+				.findFirst();
+
+		if (previous.isPresent()) {
+			HBox previousItem = (HBox) previous.get();
+			previousItem.getStyleClass().setAll("sideBarItem");
+		} else {
+			previous = playlistBox.getChildren().stream()
+					.filter(x -> x.getStyleClass().contains("sideBarItemSelected"))
+					.findFirst();
+			if (previous.isPresent()) {
+				HBox previousItem = (HBox) previous.get();
+				previousItem.getStyleClass().setAll("sideBarItem");
+			}
+		}
+	}
+
+	// 提取选择歌词项的逻辑到单独方法
+	private void selectLyricsItem() {
+		sideBar.getChildren().stream()
+				.filter(node -> node.getStyleClass().contains("sideBarItemLyrics"))
+				.findFirst()
+				.ifPresent(node -> {
+					node.getStyleClass().setAll("sideBarItemSelected");
+				});
+	}
     
     @SuppressWarnings("unchecked")
 	@FXML
