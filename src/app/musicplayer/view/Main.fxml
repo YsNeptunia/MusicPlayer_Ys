@@ -163,6 +163,33 @@
                   <Insets />
                </VBox.margin>
             </HBox>
+            <HBox id="Lyrics" maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="50.0" onMouseClicked="#selectView" prefHeight="50.0" prefWidth="250.0" styleClass="sideBarItem">
+               <children>
+                  <Pane maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="30.0" prefWidth="30.0" styleClass="iconContainer">
+                     <HBox.margin>
+                        <Insets bottom="10.0" left="10.0" right="10.0" top="10.0" />
+                     </HBox.margin>
+                     <children>
+                        <SVGPath
+                                content="M0 2 H3.58579 C4.49129 2 5.35971 2.35971 6 3 C6.64029 3.64029 7 4.50871 7 5.41421 V11 H9 V5.41421 C9 4.50871 9.35971 3.64029 10 3 C10.6403 2.35971 11.5087 2 12.4142 2 H16 V13 H11 L9 15 H7 L5 13 H0 V2 Z"
+                                layoutX="7"
+                                layoutY="7"
+                                scaleX="1.8"
+                                scaleY="1.8"
+                                styleClass="icon"
+                        />
+                     </children>
+                  </Pane>
+                  <Label ellipsisString="" maxHeight="-Infinity" minHeight="-Infinity" minWidth="0.0" prefHeight="30.0" text="Lyrics" textOverrun="CLIP">
+                     <HBox.margin>
+                        <Insets bottom="10.0" left="10.0" right="10.0" top="10.0" />
+                     </HBox.margin>
+                  </Label>
+               </children>
+               <VBox.margin>
+                  <Insets />
+               </VBox.margin>
+            </HBox>
             <Separator maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="30.0" prefHeight="25.0" prefWidth="230.0">
                <VBox.margin>
                   <Insets left="10.0" right="10.0" />

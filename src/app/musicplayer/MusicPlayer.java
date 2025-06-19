@@ -199,17 +199,17 @@ public class MusicPlayer extends Application {
 //        });
             File imgFolder = new File(Resources.JAR + "/img");
             if (!imgFolder.exists()) {
-
-                Thread thread1 = new Thread(() -> {
-                    Library.getArtists().forEach(Artist::downloadArtistImage);
-                });
-
-                Thread thread2 = new Thread(() -> {
-                    Library.getAlbums().forEach(Album::downloadArtwork);
-                });
-
-                thread1.start();
-                thread2.start();
+//
+//                Thread thread1 = new Thread(() -> {
+//                    Library.getArtists().forEach(Artist::downloadArtistImage);
+//                });
+//
+//                Thread thread2 = new Thread(() -> {
+//                    Library.getAlbums().forEach(Album::downloadArtwork);
+//                });
+//
+//                thread1.start();
+//                thread2.start();
             }
 
             new Thread(() -> {
