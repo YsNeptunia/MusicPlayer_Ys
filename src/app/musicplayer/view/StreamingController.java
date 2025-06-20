@@ -231,6 +231,7 @@ public class StreamingController implements Initializable, SubView {
         MusicPlayer.pause();
         // 关闭之前的播放器（如果有）
         MusicPlayer.closeStreamingPlayer();
+
         // 获取当前选中的歌曲
         Song song = selectedSong;
         if (song == null) return;

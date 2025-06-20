@@ -74,6 +74,7 @@ public class MusicPlayer extends Application {
     // 流媒体小播放器
     private static Stage streamingPlayer;
     private static WebEngine streamingEngine;
+    public static Boolean lrcFlag = false;//判断是否为歌词状态
 
     public static void main(String[] args) {
         Application.launch(MusicPlayer.class);
@@ -162,45 +163,9 @@ public class MusicPlayer extends Application {
             mediaPlayer.setVolume(0.5);
             mediaPlayer.setOnEndOfMedia(new SongSkipper());
 
-//            File imgFolder = new File(Resources.JAR + "/img");
-//            if (!imgFolder.exists()) {
-
-//            // 改为使用类加载器检查资源是否存在
-//            boolean resourcesMissing =
-//                    MusicPlayer.class.getResource(Resources.IMG + "Icon.png") == null ||
-//                            MusicPlayer.class.getResource(Resources.FXML + "SplashScreen.fxml") == null;
-//
-//            if (resourcesMissing) {
-//                // 下载资源的线程...
-//                Thread thread1 = new Thread(() -> {
-//                    Library.getArtists().forEach(Artist::downloadArtistImage);
-//                });
-//
-//                Thread thread2 = new Thread(() -> {
-//                    Library.getAlbums().forEach(Album::downloadArtwork);
-//                });
-//
-//                thread1.start();
-//                thread2.start();
-//            }
-//
-//            new Thread(() -> {
-//                XMLEditor.getNewSongs().forEach(song -> {
-//                    try {
-//                        Library.getArtist(song.getArtist()).downloadArtistImage();
-//                    } catch (Exception ex) {
-//                        ex.printStackTrace();
-//                    }
-//                });
-//            }).start();
-//
-//            // 调用函数初始化主布局。
-//            Platform.runLater(this::initMain);
-//        });
             File imgFolder = new File(Resources.JAR + "/img");
             if (!imgFolder.exists()) {
                 //由于不再需要歌手头像和专辑名在线下载，故把这两个线程移除
-//
 //                Thread thread1 = new Thread(() -> {
 //                    Library.getArtists().forEach(Artist::downloadArtistImage);
 //                });
@@ -536,7 +501,8 @@ public class MusicPlayer extends Application {
             if (isPlaying) {
                 play();
             }
-            mainController.LrcNavigate();
+            if(lrcFlag)
+                mainController.LrcNavigate();
         } else if (isLoopActive) {  //列表循环情况，从第一首再来
             boolean isPlaying = isPlaying();
             mainController.updatePlayPauseIcon(isPlaying);
@@ -545,7 +511,8 @@ public class MusicPlayer extends Application {
             if (isPlaying) {
                 play();
             }
-            mainController.LrcNavigate();
+            if(lrcFlag)
+                mainController.LrcNavigate();
         } else {    //顺序播放的最后一首结束，停止播放
             mainController.updatePlayPauseIcon(false);
             nowPlayingIndex = 0;

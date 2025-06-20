@@ -24,6 +24,8 @@ public class LyricsController implements SubView {
      */
     @FXML
     private void initialize() {
+        MusicPlayer.lrcFlag = true;
+
         // 配置文本区域
         lyricsTextArea.setWrapText(true);
         lyricsTextArea.setEditable(false);

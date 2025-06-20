@@ -289,7 +289,6 @@ public class MainController implements Initializable, IntellitypeListener {
     
     private void createVolumePopup() {
     	try {
-
     		Stage stage = MusicPlayer.getStage();
         	FXMLLoader loader = new FXMLLoader(this.getClass().getResource(Resources.FXML + "VolumePopup.fxml"));
         	HBox view = loader.load();
@@ -319,7 +318,6 @@ public class MainController implements Initializable, IntellitypeListener {
 
 	private void createSearchPopup() {
 		try {
-
 			Stage stage = MusicPlayer.getStage();
 			VBox view = new VBox();
             view.getStylesheets().add(Resources.CSS + "MainStyle.css");
@@ -376,7 +374,6 @@ public class MainController implements Initializable, IntellitypeListener {
     }
 
     public void initializeTimeLabels() {
-
         Song song = MusicPlayer.getNowPlaying();
         if (song != null) {
             timePassed.setText("0:00");
@@ -388,7 +385,6 @@ public class MainController implements Initializable, IntellitypeListener {
     }
 
     public void updateTimeLabels() {
-
         timePassed.setText(MusicPlayer.getTimePassed());
         timeRemaining.setText(MusicPlayer.getTimeRemaining());
     }
@@ -524,7 +520,6 @@ public class MainController implements Initializable, IntellitypeListener {
 				playlistBox.getChildren().add(cell);
 
 			} catch (Exception e) {
-
 				e.printStackTrace();
 			}
     	}
@@ -532,7 +527,6 @@ public class MainController implements Initializable, IntellitypeListener {
     
     @FXML
     private void selectView(Event e) {
-
         // 获取事件源
         HBox eventSource = ((HBox)e.getSource());
 
@@ -610,7 +604,6 @@ public class MainController implements Initializable, IntellitypeListener {
     @SuppressWarnings("unchecked")
 	@FXML
     private void newPlaylist() {
-
     	if (!newPlaylistAnimation.getStatus().equals(Status.RUNNING)) {
 
     		try {
@@ -798,9 +791,10 @@ public class MainController implements Initializable, IntellitypeListener {
     
     public SubView loadView(String viewName) {
         try {
-
         	boolean loadLetters;
         	boolean unloadLetters;
+
+			MusicPlayer.lrcFlag = false;
 
         	switch (viewName.toLowerCase()) {
         	case "artists":
@@ -973,8 +967,8 @@ public class MainController implements Initializable, IntellitypeListener {
 
     	sideBar.requestFocus();
         MusicPlayer.back();
-
-		LrcNavigate();
+		if(MusicPlayer.lrcFlag)
+			LrcNavigate();
     }
 
     @FXML
@@ -983,7 +977,8 @@ public class MainController implements Initializable, IntellitypeListener {
     	sideBar.requestFocus();
         MusicPlayer.skip();
 
-		LrcNavigate();
+		if(MusicPlayer.lrcFlag)
+			LrcNavigate();
     }
     
     @FXML
