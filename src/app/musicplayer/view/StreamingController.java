@@ -54,8 +54,6 @@ public class StreamingController implements Initializable, SubView {
     @FXML private TableColumn<Song, String> lengthColumn;
     @FXML private Label searchKey;
 
-    private MusicPlayer musicPlayer;
-
     // Initializes table view scroll bar.
     private ScrollBar scrollBar;
 
@@ -66,7 +64,7 @@ public class StreamingController implements Initializable, SubView {
     private Song selectedSong;
 
     // 静态变量用于存储当前播放的歌曲索引
-    private static int currentPlayingIndex = -1;
+    private static int currentStreamPlayingIndex = -1;
 
     @Override
     public void initialize(URL location, ResourceBundle resources) {
@@ -156,8 +154,8 @@ public class StreamingController implements Initializable, SubView {
         tableView.setItems(songs);
 
         // 如果有正在播放的歌曲索引，则设置其播放状态
-        if (currentPlayingIndex != -1 && currentPlayingIndex < tableView.getItems().size()) {
-            Song currentSong = tableView.getItems().get(currentPlayingIndex);
+        if (currentStreamPlayingIndex != -1 && currentStreamPlayingIndex < tableView.getItems().size()) {
+            Song currentSong = tableView.getItems().get(currentStreamPlayingIndex);
             currentSong.setPlaying(true);
         }
 
@@ -227,27 +225,6 @@ public class StreamingController implements Initializable, SubView {
         // 移除所有列的比较器设置（排序功能）
         // titleColumn.setComparator(...) 等代码已移除
     }
-//    private int compareSongs(Song x, Song y) {
-//        if (x == null && y == null) {
-//            return 0;
-//        } else if (x == null) {
-//            return 1;
-//        } else if (y == null) {
-//            return -1;
-//        }
-//        if (x.getTitle() == null && y.getTitle() == null) {
-//            // Both are equal.
-//            return 0;
-//        } else if (x.getTitle() == null) {
-//            // Null is after other strings.
-//            return 1;
-//        } else if (y.getTitle() == null) {
-//            // All other strings are before null.
-//            return -1;
-//        } else  /*(x.getTitle() != null && y.getTitle() != null)*/ {
-//            return x.getTitle().compareTo(y.getTitle());
-//        }
-//    }
 
     @Override
     public void play() {
@@ -267,13 +244,15 @@ public class StreamingController implements Initializable, SubView {
         song.setPlaying(true);
 
         // 更新当前播放的歌曲索引
-        currentPlayingIndex = tableView.getItems().indexOf(song);
+        currentStreamPlayingIndex = tableView.getItems().indexOf(song);
 
         // 获取歌曲的流媒体ID
 //        String streamingId = song.getStreamingId();
 
         // 创建WebView播放器
         WebView webView = new WebView();
+        webView.setCache(true); // 启用缓存
+        webView.setContextMenuEnabled(false); // 禁用右键菜单
         WebEngine engine = webView.getEngine();
         engine.setJavaScriptEnabled(true);
 
@@ -304,21 +283,6 @@ public class StreamingController implements Initializable, SubView {
         // 保存引用以便后续关闭
         MusicPlayer.setStreamingPlayer(playerStage, engine);
     }
-
-//    @Override
-//    public void play() {
-//
-//        Song song = selectedSong;
-//        ObservableList<Song> songList = tableView.getItems();
-//        if (MusicPlayer.isShuffleActive()) {
-//            Collections.shuffle(songList);
-//            songList.remove(song);
-//            songList.add(0, song);
-//        }
-//        MusicPlayer.setNowPlayingList(songList);
-//        MusicPlayer.setNowPlaying(song);
-//        MusicPlayer.play();
-//    }
 
     @Override
     public void scroll(char letter) {

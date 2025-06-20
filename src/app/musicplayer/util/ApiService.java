@@ -9,15 +9,16 @@ import java.net.HttpURLConnection;
 import java.net.URL;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
+import java.util.concurrent.TimeUnit;
 
 public class ApiService {
     private static final Object fileLock  = new Object();
     private static final String API_BASE_URL = "https://neapi.widcard.win/cloudsearch?keywords=";
     private static final String FIXED_FILENAME = "api_search_results.json";
 
-    public static void searchAndSave(String searchTerm) throws IOException {
+    public static void searchAndSave(String searchTerm) throws IOException, InterruptedException {
         int responseCode = 0;
-        synchronized(fileLock) {//在 APISearchUtil 中添加同步锁，确保操作原子性，防止进程失效
+        synchronized(fileLock) {
             try{
                 String encodedSearch = URLEncoder.encode(searchTerm, StandardCharsets.UTF_8.toString());
                 String apiUrl = API_BASE_URL + encodedSearch;
@@ -27,6 +28,9 @@ public class ApiService {
                 conn.setRequestMethod("GET");
                 conn.setConnectTimeout(10000);
                 conn.setReadTimeout(30000);
+
+                // 设置User-Agent请求头
+                conn.setRequestProperty("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.3");
 
                 responseCode = conn.getResponseCode();
                 if (responseCode == HttpURLConnection.HTTP_OK) {
@@ -42,6 +46,8 @@ public class ApiService {
                         saveKeywordToTxt(searchTerm);
                         saveApiResponseToJson(response.toString());
                     }
+                } else {
+                    System.out.println("Response Code: " + responseCode);
                 }
             }catch (Exception e) {
                 e.printStackTrace(); // 打印详细的异常信息
@@ -49,6 +55,8 @@ public class ApiService {
             }
         }
 
+        // 增加请求间隔
+        TimeUnit.SECONDS.sleep(1); // 1秒
     }
 
     private static void saveApiResponseToJson(String jsonResponse) throws IOException {
