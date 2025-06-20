@@ -15,7 +15,6 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import javafx.animation.Animation;
 import javafx.animation.Transition;
-import javafx.beans.property.SimpleStringProperty;
 import javafx.beans.value.ChangeListener;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
@@ -52,7 +51,7 @@ public class StreamingController implements Initializable, SubView {
     @FXML private TableColumn<Song, String> artistColumn;
     @FXML private TableColumn<Song, String> albumColumn;
     @FXML private TableColumn<Song, String> idColumn;
-    @FXML private TableColumn<Song, Integer> playsColumn;
+    @FXML private TableColumn<Song, String> lengthColumn;
     @FXML private Label searchKey;
 
     private MusicPlayer musicPlayer;
@@ -65,6 +64,9 @@ public class StreamingController implements Initializable, SubView {
     private String currentSortOrder = null;
 
     private Song selectedSong;
+
+    // 静态变量用于存储当前播放的歌曲索引
+    private static int currentPlayingIndex = -1;
 
     @Override
     public void initialize(URL location, ResourceBundle resources) {
@@ -80,7 +82,7 @@ public class StreamingController implements Initializable, SubView {
         artistColumn.prefWidthProperty().bind(tableView.widthProperty().subtract(50).multiply(0.26));
         albumColumn.prefWidthProperty().bind(tableView.widthProperty().subtract(50).multiply(0.26));
         idColumn.prefWidthProperty().bind(tableView.widthProperty().subtract(50).multiply(0.11));
-        playsColumn.prefWidthProperty().bind(tableView.widthProperty().subtract(50).multiply(0.11));
+        lengthColumn.prefWidthProperty().bind(tableView.widthProperty().subtract(50).multiply(0.11));
 
         // 设置单元格工厂（保持不变）
         playingColumn.setCellFactory(x -> new PlayingTableCell<>());
@@ -88,13 +90,17 @@ public class StreamingController implements Initializable, SubView {
         artistColumn.setCellFactory(x -> new ClippedTableCell<>());
         albumColumn.setCellFactory(x -> new ClippedTableCell<>());
         idColumn.setCellFactory(x -> new ClippedTableCell<>());
-        playsColumn.setCellFactory(x -> new ClippedTableCell<>());
+        lengthColumn.setCellFactory(x -> new ClippedTableCell<>());
 
         // 设置单元格值工厂（保持不变）
         playingColumn.setCellValueFactory(new PropertyValueFactory<>("playing"));
         titleColumn.setCellValueFactory(new PropertyValueFactory<>("title"));
         artistColumn.setCellValueFactory(new PropertyValueFactory<>("artist"));
         albumColumn.setCellValueFactory(new PropertyValueFactory<>("album"));
+
+        //为歌曲时长列设置绑定
+        lengthColumn.setCellValueFactory(cellData ->
+                cellData.getValue().lengthProperty());
 
         // 为流媒体ID列设置绑定
         idColumn.setCellValueFactory(cellData ->
@@ -143,11 +149,17 @@ public class StreamingController implements Initializable, SubView {
         // 加载流媒体歌曲
         String jsonPath = new File("./out/production/api_search_results.json").getAbsolutePath();
         updateSongsListFromJSON(jsonPath);
-        ObservableList<Song> songs = FXCollections.observableArrayList(Library.getSongs("test"));
+        ObservableList<Song> songs = FXCollections.observableArrayList(Library.getSongs("Streaming Media Function"));//专用的构造方法
 //        ObservableList<Song> songs = Library.getSongs();
 
         // 设置表格数据
         tableView.setItems(songs);
+
+        // 如果有正在播放的歌曲索引，则设置其播放状态
+        if (currentPlayingIndex != -1 && currentPlayingIndex < tableView.getItems().size()) {
+            Song currentSong = tableView.getItems().get(currentPlayingIndex);
+            currentSong.setPlaying(true);
+        }
 
         // 行工厂 - 保留点击监听器
         tableView.setRowFactory(x -> {
@@ -245,6 +257,17 @@ public class StreamingController implements Initializable, SubView {
         // 获取当前选中的歌曲
         Song song = selectedSong;
         if (song == null) return;
+
+        // 将所有歌曲的播放状态设置为 false
+        ObservableList<Song> songs = tableView.getItems();
+        for (Song s : songs) {
+            s.setPlaying(false);
+        }
+        // 将当前歌曲的播放状态设置为 true
+        song.setPlaying(true);
+
+        // 更新当前播放的歌曲索引
+        currentPlayingIndex = tableView.getItems().indexOf(song);
 
         // 获取歌曲的流媒体ID
 //        String streamingId = song.getStreamingId();
@@ -441,6 +464,8 @@ public class StreamingController implements Initializable, SubView {
                 }
                 // 专辑
                 String album = node.path("al").path("name").asText();
+                // 歌曲长度（毫秒）
+                long duration = node.path("dt").asLong();
 
                 if (!title.isEmpty() && !artist.isEmpty()) {
                     // 使用专用方法添加
@@ -448,6 +473,7 @@ public class StreamingController implements Initializable, SubView {
                             title,
                             artist,
                             album,
+                            duration,
                             id
                     ));
                 }
@@ -456,4 +482,5 @@ public class StreamingController implements Initializable, SubView {
             e.printStackTrace();
         }
     }
+
 }

@@ -25,8 +25,8 @@
                 <TableColumn fx:id="titleColumn" maxWidth="1.7976931348623157E308" minWidth="0.0" prefWidth="-1.0" resizable="false" styleClass="firstColumn" text="Title" />
                 <TableColumn fx:id="artistColumn" maxWidth="1.7976931348623157E308" minWidth="0.0" prefWidth="-1.0" resizable="false" styleClass="textColumn" text="Artist" />
                 <TableColumn fx:id="albumColumn" maxWidth="1.7976931348623157E308" minWidth="0.0" prefWidth="-1.0" resizable="false" styleClass="textColumn" text="Album" />
+                <TableColumn fx:id="lengthColumn" maxWidth="1.7976931348623157E308" minWidth="0.0" prefWidth="-1.0" resizable="false" styleClass="numberColumn" text="Length" />
                 <TableColumn fx:id="idColumn" maxWidth="1.7976931348623157E308" minWidth="0.0" prefWidth="-1.0" resizable="false" styleClass="numberColumn" text="ID"/>
-                <TableColumn fx:id="playsColumn" maxWidth="1.7976931348623157E308" minWidth="0.0" prefWidth="-1.0" resizable="false" styleClass="numberColumn" />
             </columns>
         </TableView>
     </children>
