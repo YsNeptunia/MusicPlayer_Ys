@@ -34,6 +34,6 @@
 
 #### 致谢(Special Thanks)
 - https://github.com/Mpmart08/MusicPlayer Original Code
-- https://github.com/widcardw/music-grid 的在线搜索功能启发（鬼知道我是怎么用上这个完全没有说明文档的API的
+- https://github.com/widcardw/music-grid 的在线搜索功能启发（借用了该项目的API
 
 禁止商业、盈利相关利用
