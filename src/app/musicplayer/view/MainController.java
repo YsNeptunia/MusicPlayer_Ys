@@ -574,11 +574,17 @@ public class MainController implements Initializable, IntellitypeListener {
             // 加载视图
             loadView(eventSource.getId());
         }
+
+		//当选中项为Lyrics时进入相关函数
+		if (eventSource.getId().equals("Lyrics")) {
+			LrcNavigate();
+		}
     }
+
 	@FXML
-	private void navigateToSong() {
-		clearPreviousSelection();
-		selectLyricsItem();
+	public void LrcNavigate() {
+//		clearPreviousSelection();
+//		selectLyricsItem();
 
 		// 加载视图并获取控制器
 		LyricsController lyricsController = (LyricsController) loadView("Lyrics");
@@ -599,36 +605,6 @@ public class MainController implements Initializable, IntellitypeListener {
 				lyricsController.showNoSongError();
 			}
 		});
-	}
-
-	// 提取清除选中状态的逻辑到单独方法
-	private void clearPreviousSelection() {
-		Optional<Node> previous = sideBar.getChildren().stream()
-				.filter(x -> x.getStyleClass().contains("sideBarItemSelected"))
-				.findFirst();
-
-		if (previous.isPresent()) {
-			HBox previousItem = (HBox) previous.get();
-			previousItem.getStyleClass().setAll("sideBarItem");
-		} else {
-			previous = playlistBox.getChildren().stream()
-					.filter(x -> x.getStyleClass().contains("sideBarItemSelected"))
-					.findFirst();
-			if (previous.isPresent()) {
-				HBox previousItem = (HBox) previous.get();
-				previousItem.getStyleClass().setAll("sideBarItem");
-			}
-		}
-	}
-
-	// 提取选择歌词项的逻辑到单独方法
-	private void selectLyricsItem() {
-		sideBar.getChildren().stream()
-				.filter(node -> node.getStyleClass().contains("sideBarItemLyrics"))
-				.findFirst()
-				.ifPresent(node -> {
-					node.getStyleClass().setAll("sideBarItemSelected");
-				});
 	}
     
     @SuppressWarnings("unchecked")
@@ -997,6 +973,8 @@ public class MainController implements Initializable, IntellitypeListener {
 
     	sideBar.requestFocus();
         MusicPlayer.back();
+
+		LrcNavigate();
     }
 
     @FXML
@@ -1004,6 +982,8 @@ public class MainController implements Initializable, IntellitypeListener {
 
     	sideBar.requestFocus();
         MusicPlayer.skip();
+
+		LrcNavigate();
     }
     
     @FXML

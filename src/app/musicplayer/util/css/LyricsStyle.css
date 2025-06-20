@@ -5,8 +5,8 @@
 
 /* 头部标题区域样式 */
 .lyrics-header {
-    -fx-background-color: #4a4a4a;
-    -fx-border-color: #333;
+    -fx-fill: rgb(52, 109, 207);
+    -fx-background-color: rgb(47, 98, 187);
     -fx-border-width: 0 0 1 0;
 }
 

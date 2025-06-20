@@ -152,7 +152,7 @@ public class LyricsController implements SubView {
                         new OutputStreamWriter(new FileOutputStream(txtFile), StandardCharsets.UTF_8))) {
                     writer.write("歌曲: " + song.getTitle() + "\n");
                     writer.write("艺术家: " + song.getArtist() + "\n");
-                    writer.write("\n歌词内容将显示在这里\n");
+                    writer.write("\n似乎没找到歌词呢\n");
                     System.out.println("成功创建新歌词文件");
                 }
             }

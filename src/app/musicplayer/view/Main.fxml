@@ -163,7 +163,7 @@
                   <Insets />
                </VBox.margin>
             </HBox>
-            <HBox id="Lyrics" maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="50.0" onMouseClicked="#navigateToSong" prefHeight="50.0" prefWidth="250.0" styleClass="sideBarItem">
+            <HBox id="Lyrics" maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="50.0" onMouseClicked="#selectView" prefHeight="50.0" prefWidth="250.0" styleClass="sideBarItem">
                <children>
                   <Pane maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="30.0" prefWidth="30.0" styleClass="iconContainer">
                      <HBox.margin>
