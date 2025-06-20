@@ -195,25 +195,6 @@ public class StreamingController implements Initializable, SubView {
                 }
             });
 
-            row.setOnDragDetected(event -> {
-                Dragboard db = row.startDragAndDrop(TransferMode.ANY);
-                ClipboardContent content = new ClipboardContent();
-                if (tableView.getSelectionModel().getSelectedIndices().size() > 1) {
-                    content.putString("List");
-                    db.setContent(content);
-                    MusicPlayer.setDraggedItem(tableView.getSelectionModel().getSelectedItems());
-                } else {
-                    content.putString("Song");
-                    db.setContent(content);
-                    MusicPlayer.setDraggedItem(row.getItem());
-                }
-                ImageView image = new ImageView(row.snapshot(null, null));
-                Rectangle2D rectangle = new Rectangle2D(0, 0, 250, 50);
-                image.setViewport(rectangle);
-                db.setDragView(image.snapshot(null, null), 125, 25);
-                event.consume();
-            });
-
             return row;
         });
 
