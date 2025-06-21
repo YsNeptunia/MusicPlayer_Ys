@@ -122,4 +122,8 @@ public class Playlist {
     public String toString() {
         return this.title;
     }
+
+    public void setTitle(String newTitle) {
+        this.title = newTitle;
+    }
 }

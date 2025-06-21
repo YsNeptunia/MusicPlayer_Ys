@@ -388,6 +388,128 @@ public class MainController implements Initializable, IntellitypeListener {
         timePassed.setText(MusicPlayer.getTimePassed());
         timeRemaining.setText(MusicPlayer.getTimeRemaining());
     }
+
+	private void enablePlaylistRenaming(HBox cell, Label label, Playlist playlist) {
+		// 如果是特殊歌单（最多播放或最近播放），则禁用重命名功能
+		if (playlist instanceof MostPlayedPlaylist || playlist instanceof RecentlyPlayedPlaylist) {
+			return;
+		}
+
+		// 为标签添加双击事件处理器
+		label.setOnMouseClicked(event -> {
+			if (event.getClickCount() == 2) {
+				renamePlaylist(cell, label, playlist);
+			}
+		});
+	}
+
+	private void renamePlaylist(HBox cell, Label label, Playlist playlist) {
+		// 隐藏标签
+		label.setVisible(false);
+		// 保存原始标签位置
+		Insets originalMargin = HBox.getMargin(label);
+
+		// 创建文本框用于输入新名称
+		TextField textBox = new TextField();
+		textBox.setPrefHeight(30);
+		textBox.setText(label.getText());
+
+		// 设置文本框位置与原始标签完全一致
+		HBox.setMargin(textBox, originalMargin);
+
+		// 设置文本填充样式与标签一致
+		textBox.setStyle(label.getStyle());
+		textBox.getStyleClass().addAll(label.getStyleClass());
+		textBox.setAlignment(Pos.CENTER_LEFT);
+
+		cell.getChildren().add(textBox);
+
+		// 添加取消标志
+		final boolean[] cancelled = {false};
+
+		// 设置文本框焦点监听
+		textBox.focusedProperty().addListener((obs, oldValue, newValue) -> {
+			if (oldValue && !newValue) {
+				if (!cancelled[0]) {
+					applyNewPlaylistName(cell, label, textBox, playlist);
+				} else {
+					cancelPlaylistRename(cell, label, textBox);
+				}
+			}
+		});
+
+		// 设置回车键确认
+		textBox.setOnKeyPressed(event -> {
+			if (event.getCode() == KeyCode.ENTER) {
+				applyNewPlaylistName(cell, label, textBox, playlist);
+				sideBar.requestFocus();
+			} else if (event.getCode() == KeyCode.ESCAPE) {
+				// 设置取消标志
+				cancelled[0] = true;
+				// 取消编辑
+				cancelPlaylistRename(cell, label, textBox);
+				sideBar.requestFocus();
+				event.consume(); // 阻止事件传播
+			}
+		});
+
+		// 设置文本框选中所有文本并获取焦点
+		Platform.runLater(() -> {
+			textBox.selectAll();
+			textBox.requestFocus();
+		});
+	}
+
+	private void applyNewPlaylistName(HBox cell, Label label, TextField textBox, Playlist playlist) {
+		String newName = textBox.getText().trim();
+
+		// 禁止使用 "New Playlist" 作为歌单名称
+		if (newName.equals("New Playlist")) {
+			// 自动转换为 "New Playlist 1"
+			newName = "New Playlist 1";
+		}
+
+		if (!newName.isEmpty() && !newName.equals(playlist.getTitle())) {
+			// 检查名称唯一性
+			String uniqueName = checkDuplicatePlaylist(newName, 0);
+			label.setText(uniqueName);
+
+			// 更新歌单标题
+			playlist.setTitle(uniqueName);
+
+			// 调用 Library 中的方法更新XML
+			Library.updatePlaylistTitle(playlist);
+
+			// 如果右侧视图是歌单视图，刷新显示
+			if (subViewController instanceof PlaylistsController) {
+				PlaylistsController controller = (PlaylistsController) subViewController;
+				controller.refreshPlaylist(playlist);
+			}
+		}
+
+		// 恢复标签显示
+		cancelPlaylistRename(cell, label, textBox);
+	}
+
+	// 更新歌单框中的引用
+	private void updatePlaylistReference(String oldName, String newName) {
+		for (Node node : playlistBox.getChildren()) {
+			if (node instanceof HBox) {
+				HBox cell = (HBox) node;
+				Label label = (Label) cell.getChildren().get(1);
+				if (label.getText().equals(oldName)) {
+					label.setText(newName);
+					break;
+				}
+			}
+		}
+	}
+
+	private void cancelPlaylistRename(HBox cell, Label label, TextField textBox) {
+		cell.getChildren().remove(textBox);
+		HBox.setMargin(label, new Insets(10, 10, 10, 10));
+		label.setVisible(true);
+	}
     
     @SuppressWarnings("unchecked")
 	private void initializePlaylists() {
@@ -397,6 +519,11 @@ public class MainController implements Initializable, IntellitypeListener {
     			// 加载歌单单元格的FXML文件
     			FXMLLoader loader = new FXMLLoader(this.getClass().getResource(Resources.FXML + "PlaylistCell.fxml"));
 				HBox cell = loader.load();
+
+				Playlist currentPlaylist = playlist; // 使用作用域内的playlist变量
+				Label playlistLabel = (Label) cell.getChildren().get(1); // 使用作用域内的label变量
+				enablePlaylistRenaming(cell, playlistLabel, currentPlaylist);
+
 				// 获取单元格中的标签
 				Label label = (Label) cell.getChildren().get(1);
 				// 设置标签的文本为歌单的标题
@@ -620,18 +747,34 @@ public class MainController implements Initializable, IntellitypeListener {
     			cell.getChildren().add(textBox);
     			HBox.setMargin(textBox, new Insets(10, 10, 10, 9));
 
-    			textBox.focusedProperty().addListener((obs, oldValue, newValue) -> {
-    				if (oldValue && !newValue) {
-    					String text = textBox.getText().equals("") ? "New Playlist" : textBox.getText();
-    					text = checkDuplicatePlaylist(text, 0);
-    					label.setText(text);
-        				cell.getChildren().remove(textBox);
-        				HBox.setMargin(label, new Insets(10, 10, 10, 10));
-        				label.setVisible(true);
-        				Library.addPlaylist(text);
-    				}
-    			});
+				textBox.focusedProperty().addListener((obs, oldValue, newValue) -> {
+					if (oldValue && !newValue) {
+						String text = textBox.getText().trim();
 
+						// 处理空文本
+						if (text.isEmpty()) {
+							text = "New Playlist 1";
+						}
+						// 如果用户输入 "New Playlist"，改为 "New Playlist 1"
+						else if (text.equals("New Playlist")) {
+							text = "New Playlist 1";
+						}
+
+						// 检查名称冲突
+						text = checkDuplicatePlaylist(text, 0);
+
+						label.setText(text);
+						cell.getChildren().remove(textBox);
+						HBox.setMargin(label, new Insets(10, 10, 10, 10));
+						label.setVisible(true);
+
+						// 同步添加歌单并获取对象
+						Playlist newPlaylist = Library.addPlaylistSync(text);
+
+						// 为新歌单启用重命名
+						enablePlaylistRenaming(cell, label, newPlaylist);
+					}
+				});
     			textBox.setOnKeyPressed(x -> {
     				if (x.getCode() == KeyCode.ENTER)  {
     		            sideBar.requestFocus();
@@ -761,33 +904,35 @@ public class MainController implements Initializable, IntellitypeListener {
         	newPlaylistAnimation.play();
     	}
     }
-    
-    private String checkDuplicatePlaylist(String text, int i) {
-    	for (Playlist playlist : Library.getPlaylists()) {
-    		if (playlist.getTitle().equals(text)) {
 
-    			int index = text.lastIndexOf(' ') + 1;
-    			if (index != 0) {
-    				try {
-    					i = Integer.parseInt(text.substring(index));
-    				} catch (Exception ex) {
-    					// do nothing
-    				}
-    			}
+	private String checkDuplicatePlaylist(String text, int i) {
+		// 禁止使用 "New Playlist" 作为歌单名称
+		if (text.equals("New Playlist")) {
+			text = "New Playlist 1";
+		}
 
-    			i++;
-
-    			if (i == 1) {
-    				text = checkDuplicatePlaylist(text + " " + i, i);
-    			} else {
-    				text = checkDuplicatePlaylist(text.substring(0, index) + i, i);
-    			}
-    			break;
-    		}
-    	}
-
-    	return text;
-    }
+		// 原有检查逻辑
+		for (Playlist playlist : Library.getPlaylists()) {
+			if (playlist.getTitle().equals(text)) {
+				int index = text.lastIndexOf(' ') + 1;
+				if (index != 0) {
+					try {
+						i = Integer.parseInt(text.substring(index));
+					} catch (Exception ex) {
+						// do nothing
+					}
+				}
+				i++;
+				if (i == 1) {
+					text = checkDuplicatePlaylist(text + " " + i, i);
+				} else {
+					text = checkDuplicatePlaylist(text.substring(0, index) + i, i);
+				}
+				break;
+			}
+		}
+		return text;
+	}
     
     public SubView loadView(String viewName) {
         try {

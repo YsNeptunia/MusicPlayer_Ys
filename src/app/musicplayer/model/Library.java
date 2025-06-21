@@ -483,13 +483,8 @@ public final class Library {
         }
     }
 
-    public static void addPlaylist(String text) {
-
+    public static void updatePlaylistTitle(Playlist playlist) {
         Thread thread = new Thread(() -> {
-
-            int i = playlists.size() - 2;
-            playlists.add(new Playlist(i, text, new ArrayList<>()));
-
             try {
                 DocumentBuilderFactory docFactory = DocumentBuilderFactory.newInstance();
                 DocumentBuilder docBuilder = docFactory.newDocumentBuilder();
@@ -498,28 +493,28 @@ public final class Library {
                 XPathFactory xPathfactory = XPathFactory.newInstance();
                 XPath xpath = xPathfactory.newXPath();
 
-                XPathExpression expr = xpath.compile("/library/playlists");
-                Node playlists = ((NodeList) expr.evaluate(doc, XPathConstants.NODESET)).item(0);
+                // 查找对应ID的歌单节点
+                XPathExpression expr = xpath.compile("/library/playlists/playlist[@id='" + playlist.getId() + "']");
+                Node playlistNode = (Node) expr.evaluate(doc, XPathConstants.NODE);
 
-                Element playlist = doc.createElement("playlist");
-                playlist.setAttribute("id", Integer.toString(i));
-                playlist.setAttribute(TITLE, text);
-                playlists.appendChild(playlist);
+                if (playlistNode != null) {
+                    // 更新歌单标题属性
+                    ((Element) playlistNode).setAttribute("title", playlist.getTitle());
 
-                TransformerFactory transformerFactory = TransformerFactory.newInstance();
-                Transformer transformer = transformerFactory.newTransformer();
-                transformer.setOutputProperty("{http://xml.apache.org/xslt}indent-amount", "4");
-                transformer.setOutputProperty(OutputKeys.INDENT, "yes");
-                DOMSource source = new DOMSource(doc);
-                File xmlFile = new File(Resources.JAR + "library.xml");
-                StreamResult result = new StreamResult(xmlFile);
-                transformer.transform(source, result);
+                    // 保存修改
+                    TransformerFactory transformerFactory = TransformerFactory.newInstance();
+                    Transformer transformer = transformerFactory.newTransformer();
+                    transformer.setOutputProperty("{http://xml.apache.org/xslt}indent-amount", "4");
+                    transformer.setOutputProperty(OutputKeys.INDENT, "yes");
+                    DOMSource source = new DOMSource(doc);
+                    File xmlFile = new File(Resources.JAR + "library.xml");
+                    StreamResult result = new StreamResult(xmlFile);
+                    transformer.transform(source, result);
+                }
             } catch (Exception ex) {
                 ex.printStackTrace();
             }
-
         });
-
         thread.start();
     }
 
@@ -711,5 +706,53 @@ public final class Library {
         });
 
         thread.start();
+    }
+
+    public static Playlist addPlaylistSync(String title) {
+        // 确保 playlists 已初始化
+        if (playlists == null) {
+            getPlaylists();
+        }
+
+        // 创建新歌单
+        int newId = playlists.size() - 2; // 减去两个特殊歌单的位置
+        Playlist newPlaylist = new Playlist(newId, title, new ArrayList<>());
+
+        // 添加到内存列表
+        playlists.add(newPlaylist);
+
+        // 异步更新 XML
+        Thread thread = new Thread(() -> {
+            try {
+                DocumentBuilderFactory docFactory = DocumentBuilderFactory.newInstance();
+                DocumentBuilder docBuilder = docFactory.newDocumentBuilder();
+                Document doc = docBuilder.parse(Resources.JAR + "library.xml");
+
+                XPathFactory xPathfactory = XPathFactory.newInstance();
+                XPath xpath = xPathfactory.newXPath();
+
+                XPathExpression expr = xpath.compile("/library/playlists");
+                Node playlistsNode = ((NodeList) expr.evaluate(doc, XPathConstants.NODESET)).item(0);
+
+                Element playlist = doc.createElement("playlist");
+                playlist.setAttribute("id", Integer.toString(newId));
+                playlist.setAttribute("title", title);
+                playlistsNode.appendChild(playlist);
+
+                TransformerFactory transformerFactory = TransformerFactory.newInstance();
+                Transformer transformer = transformerFactory.newTransformer();
+                transformer.setOutputProperty("{http://xml.apache.org/xslt}indent-amount", "4");
+                transformer.setOutputProperty(OutputKeys.INDENT, "yes");
+                DOMSource source = new DOMSource(doc);
+                File xmlFile = new File(Resources.JAR + "library.xml");
+                StreamResult result = new StreamResult(xmlFile);
+                transformer.transform(source, result);
+            } catch (Exception ex) {
+                ex.printStackTrace();
+            }
+        });
+        thread.start();
+
+        return newPlaylist;
     }
 }

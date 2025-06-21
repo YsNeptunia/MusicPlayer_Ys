@@ -354,4 +354,11 @@ public class PlaylistsController implements Initializable, SubView {
             selectedPlaylist = null;
         }
     }
+
+    public void refreshPlaylist(Playlist playlist) {
+        // 如果当前显示的就是这个歌单，则刷新
+        if (selectedPlaylist != null && selectedPlaylist.equals(playlist)) {
+            selectPlaylist(playlist);
+        }
+    }
 }
